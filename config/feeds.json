@@ -1,0 +1,164 @@
+[
+  {
+    "name": "BBC World",
+    "url": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "region": "Global",
+    "countryCode": "GLOBAL"
+  },
+  {
+    "name": "BBC Business",
+    "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+    "region": "Global",
+    "countryCode": "GLOBAL"
+  },
+  {
+    "name": "Al Jazeera",
+    "url": "https://www.aljazeera.com/xml/rss/all.xml",
+    "region": "Middle East",
+    "countryCode": "QA"
+  },
+  {
+    "name": "CNBC World",
+    "url": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362",
+    "region": "North America",
+    "countryCode": "US"
+  },
+  {
+    "name": "Federal Reserve",
+    "url": "https://www.federalreserve.gov/feeds/press_all.xml",
+    "region": "North America",
+    "countryCode": "US"
+  },
+  {
+    "name": "NPR World",
+    "url": "https://feeds.npr.org/1004/rss.xml",
+    "region": "North America",
+    "countryCode": "US"
+  },
+  {
+    "name": "Defense News",
+    "url": "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml",
+    "region": "North America",
+    "countryCode": "US"
+  },
+  {
+    "name": "BBC UK",
+    "url": "https://feeds.bbci.co.uk/news/uk/rss.xml",
+    "region": "Europe",
+    "countryCode": "UK"
+  },
+  {
+    "name": "BBC UK Politics",
+    "url": "https://feeds.bbci.co.uk/news/politics/rss.xml",
+    "region": "Europe",
+    "countryCode": "UK"
+  },
+  {
+    "name": "BBC Europe",
+    "url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
+    "region": "Europe",
+    "countryCode": "EU"
+  },
+  {
+    "name": "DW News",
+    "url": "https://rss.dw.com/rdf/rss-en-all",
+    "region": "Europe",
+    "countryCode": "DE"
+  },
+  {
+    "name": "France24",
+    "url": "https://www.france24.com/en/rss",
+    "region": "Europe",
+    "countryCode": "FR"
+  },
+  {
+    "name": "BBC Asia",
+    "url": "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+    "region": "Asia-Pacific",
+    "countryCode": "APAC"
+  },
+  {
+    "name": "South China Morning Post",
+    "url": "https://www.scmp.com/rss/91/feed",
+    "region": "Asia-Pacific",
+    "countryCode": "CN"
+  },
+  {
+    "name": "Japan Times",
+    "url": "https://www.japantimes.co.jp/feed/",
+    "region": "Asia-Pacific",
+    "countryCode": "JP"
+  },
+  {
+    "name": "Times of India",
+    "url": "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
+    "region": "Asia-Pacific",
+    "countryCode": "IN"
+  },
+  {
+    "name": "Economic Times India",
+    "url": "https://economictimes.indiatimes.com/rssfeedstopstories.cms",
+    "region": "Asia-Pacific",
+    "countryCode": "IN"
+  },
+  {
+    "name": "Korea Herald",
+    "url": "http://www.koreaherald.com/common/rss_xml.php?ct=102",
+    "region": "Asia-Pacific",
+    "countryCode": "KR"
+  },
+  {
+    "name": "ABC Australia",
+    "url": "https://www.abc.net.au/news/feed/2942460/rss.xml",
+    "region": "Asia-Pacific",
+    "countryCode": "AU"
+  },
+  {
+    "name": "BBC Middle East",
+    "url": "https://feeds.bbci.co.uk/news/world/middle_east/rss.xml",
+    "region": "Middle East",
+    "countryCode": "ME"
+  },
+  {
+    "name": "Times of Israel",
+    "url": "https://www.timesofisrael.com/feed/",
+    "region": "Middle East",
+    "countryCode": "IL"
+  },
+  {
+    "name": "BBC Latin America",
+    "url": "https://feeds.bbci.co.uk/news/world/latin_america/rss.xml",
+    "region": "South America",
+    "countryCode": "SA"
+  },
+  {
+    "name": "BBC Africa",
+    "url": "https://feeds.bbci.co.uk/news/world/africa/rss.xml",
+    "region": "Africa",
+    "countryCode": "AF"
+  },
+  {
+    "name": "Moscow Times",
+    "url": "https://www.themoscowtimes.com/rss/news",
+    "region": "Europe",
+    "countryCode": "RU"
+  },
+  {
+    "name": "BBC Technology",
+    "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+    "region": "Global",
+    "countryCode": "GLOBAL"
+  },
+  {
+    "name": "BBC Science",
+    "url": "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",
+    "region": "Global",
+    "countryCode": "GLOBAL"
+  },
+  {
+    "name": "BBC Health",
+    "url": "https://feeds.bbci.co.uk/news/health/rss.xml",
+    "region": "Global",
+    "countryCode": "GLOBAL"
+  }
+]

@@ -1,0 +1,127 @@
+// Prisma schema for GeoPulse
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String          @id @default(cuid())
+  name         String
+  email        String          @unique
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  watchlists   Watchlist[]
+  alerts       Alert[]
+  preference   UserPreference?
+}
+
+model UserPreference {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  categories String   @default("[]") // JSON array: ["energy","conflict","tech"]
+  regions    String   @default("[]") // JSON array: ["Middle East","Europe"]
+  symbols    String   @default("[]") // JSON array: ["SPY","NVDA","GLD"]
+  onboarded  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Watchlist {
+  id        String          @id @default(cuid())
+  name      String
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  items     WatchlistItem[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model WatchlistItem {
+  id          String      @id @default(cuid())
+  symbol      String
+  name        String
+  assetClass  String
+  countryCode String?
+  watchlistId String
+  watchlist   Watchlist   @relation(fields: [watchlistId], references: [id])
+  createdAt   DateTime    @default(now())
+}
+
+model Event {
+  id             String   @id @default(cuid())
+  title          String
+  summary        String
+  source         String
+  region         String
+  countryCode    String?
+  severity       Int
+  sentimentScore Float?
+  sentimentLabel String?
+  publishedAt    DateTime
+  url            String   @unique
+  createdAt      DateTime @default(now())
+  correlations   Correlation[]
+}
+
+model MarketSnapshot {
+  id         String   @id @default(cuid())
+  symbol     String
+  price      Float
+  changePct  Float
+  assetClass String
+  timestamp  DateTime
+}
+
+model Correlation {
+  id              String   @id @default(cuid())
+  eventId         String
+  event           Event    @relation(fields: [eventId], references: [id])
+  symbol          String
+  impactScore     Float
+  impactDirection String   @default("neutral")
+  impactMagnitude Float    @default(0)
+  window          String
+  createdAt       DateTime @default(now())
+}
+
+model Pattern {
+  id            String   @id @default(cuid())
+  eventCategory String
+  symbol        String
+  avgImpactPct  Float
+  direction     String
+  confidence    Float
+  occurrences   Int
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([eventCategory, symbol])
+}
+
+model IngestionLog {
+  id          String   @id @default(cuid())
+  source      String
+  eventsFound Int
+  status      String
+  error       String?
+  startedAt   DateTime
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Alert {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  condition   String
+  status      String
+  createdAt   DateTime @default(now())
+}

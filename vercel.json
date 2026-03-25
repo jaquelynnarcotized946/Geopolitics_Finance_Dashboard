@@ -1,0 +1,8 @@
+{
+  "cron": [
+    {
+      "path": "/api/cron/ingest?secret=CHANGE_ME",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}
