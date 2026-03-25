@@ -8,17 +8,27 @@ const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
  * Safe to call multiple times (idempotent).
  */
 export function startScheduler() {
-  if (schedulerStarted) return;
+  if (schedulerStarted || process.env.VERCEL === "1") return;
+
+  const secret = process.env.CRON_SECRET;
+  if (!secret) {
+    console.warn("[Scheduler] Skipping auto-ingestion: CRON_SECRET is not set");
+    return;
+  }
+
   schedulerStarted = true;
 
   setInterval(async () => {
     console.log("[Scheduler] Starting auto-ingestion at", new Date().toISOString());
     try {
       const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-      const secret = process.env.CRON_SECRET || "";
       const res = await fetch(`${baseUrl}/api/cron/ingest`, {
-        headers: { "x-cron-secret": secret },
+        method: "POST",
+        headers: { Authorization: `Bearer ${secret}` },
       });
+      if (!res.ok) {
+        throw new Error(`Scheduler request failed with ${res.status}`);
+      }
       const data = await res.json();
       console.log("[Scheduler] Ingestion complete:", data);
     } catch (err) {

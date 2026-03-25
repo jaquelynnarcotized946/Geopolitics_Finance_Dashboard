@@ -1,36 +1,32 @@
-# GeoPulse Intelligence — Setup & Deployment Guide
+# GeoPulse Intelligence - Setup and Deployment Guide
 
 ## Prerequisites
 
-- **Node.js** 18.x or later (LTS recommended)
-- **npm** 9.x or later (comes with Node.js)
-- **Git** for version control
+- Node.js 20+ and npm
+- A Supabase Postgres database
+- Git
 
-No API keys, no cloud accounts, no paid services required.
+This repository is already configured for Prisma + Supabase PostgreSQL. It is not a SQLite app anymore.
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repository
 git clone <repo-url> GPF_Dashboard
 cd GPF_Dashboard
-
-# 2. Install dependencies
 npm install
+cp .env.example .env
+```
 
-# 3. Generate Prisma client
-npx prisma generate
+Fill in `.env`, then apply the existing Prisma migrations:
 
-# 4. Create database and run migrations
-npx prisma migrate dev
-
-# 5. Start development server
+```bash
+npx prisma migrate deploy
 npm run dev
 ```
 
-The app will be running at **http://localhost:3000**.
+The app runs at `http://localhost:3000`.
 
 ---
 
@@ -39,24 +35,30 @@ The app will be running at **http://localhost:3000**.
 Create a `.env` file in the project root:
 
 ```env
-# Required: NextAuth configuration
-NEXTAUTH_SECRET="your-random-secret-string-here"
+# Supabase PostgreSQL
+# Runtime connection for serverless app traffic
+DATABASE_URL="postgresql://...pooler.supabase.com:6543/postgres?pgbouncer=true"
+
+# Direct/session connection for Prisma migrations
+DIRECT_URL="postgresql://...pooler.supabase.com:5432/postgres"
+
+# NextAuth
 NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="generate-a-random-secret"
 
-# Required: Database
-DATABASE_URL="file:./dev.db"
-
-# Optional: Cron ingestion secret (for automated ingestion)
-CRON_SECRET="your-cron-secret-here"
+# Cron ingestion
+CRON_SECRET="generate-a-random-secret"
 ```
 
-### Generating NEXTAUTH_SECRET
+Notes:
+
+- Use the Supabase transaction pooler on port `6543` for `DATABASE_URL`.
+- Use the Supabase session/direct connection on port `5432` for `DIRECT_URL`.
+- On Vercel, set `NEXTAUTH_URL` to your deployed domain.
+
+Generate a secret with:
 
 ```bash
-# Option 1: Using openssl
-openssl rand -base64 32
-
-# Option 2: Using Node.js
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
@@ -64,273 +66,163 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 ## Database Setup
 
-### Initial Migration
+The repo already contains Prisma migrations in `prisma/migrations`.
+
+Use these commands:
 
 ```bash
-# Create database and apply all migrations
-npx prisma migrate dev
+# Apply checked-in migrations
+npx prisma migrate deploy
+
+# Regenerate the client after schema changes
+npx prisma generate
 ```
 
-This creates `prisma/dev.db` (SQLite file) with all 9 tables.
-
-### Seed Test Data
-
-After migration, create a test user account:
-
-1. Start the dev server: `npm run dev`
-2. Navigate to http://localhost:3000/auth/signup
-3. Create account with:
-   - **Email:** test@geopulse.dev
-   - **Password:** testpass123
-   - **Name:** Test User
-
-Or use the existing test credentials if the database is already seeded.
-
-### Initial Data Ingestion
-
-After creating an account, trigger the first data ingestion:
+When you change `prisma/schema.prisma` during development:
 
 ```bash
-# Option 1: Via API (if CRON_SECRET is set)
-curl -X POST http://localhost:3000/api/cron/ingest \
-  -H "Authorization: Bearer your-cron-secret-here"
-
-# Option 2: Via the Settings page
-# Login → Settings → Click "Sync Now"
-
-# Option 3: Via the /api/sync endpoint (requires auth session)
-# Login first, then visit http://localhost:3000/api/sync in browser
+npx prisma migrate dev --name your_change_name
 ```
 
-First ingestion takes 30-90 seconds and fetches from all 50+ RSS feeds + GDELT.
-
----
-
-## Development
-
-### Start Dev Server
-
-```bash
-npm run dev
-```
-
-Runs on **http://localhost:3000** with Turbopack for fast refresh.
-
-### Type Checking
-
-```bash
-npx tsc --noEmit
-```
-
-Should show zero errors on a clean build.
-
-### Prisma Studio
-
-Visual database browser:
+Useful commands:
 
 ```bash
 npx prisma studio
-```
-
-Opens at **http://localhost:5555** — browse and edit all database tables.
-
-### Common Development Commands
-
-```bash
-# Install a new package
-npm install <package-name>
-
-# After changing prisma/schema.prisma:
-npx prisma generate          # Regenerate client
-npx prisma migrate dev       # Create migration
-
-# Reset database (deletes all data)
-npx prisma migrate reset
-
-# Check TypeScript errors
-npx tsc --noEmit
+npm run seed
 ```
 
 ---
 
-## Project Structure
-
-```
-GPF_Dashboard/
-├── prisma/
-│   ├── schema.prisma       # Database schema
-│   ├── dev.db              # SQLite database (generated)
-│   └── migrations/         # Migration history
-├── config/
-│   └── feeds.json          # RSS feed configuration
-├── src/
-│   ├── pages/              # Next.js pages (15 routes)
-│   │   ├── api/            # API endpoints (15 routes)
-│   │   └── ...
-│   ├── components/         # React components
-│   ├── lib/                # Business logic
-│   │   ├── hooks/          # SWR data hooks
-│   │   ├── sources/        # Data source clients
-│   │   ├── correlation/    # Correlation engine
-│   │   ├── ingest/         # Ingestion pipeline
-│   │   ├── scoring/        # Severity scoring
-│   │   └── analysis/       # Sentiment analysis
-│   └── types/              # TypeScript declarations
-├── docs/                   # This documentation
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-├── next.config.ts
-└── postcss.config.mjs
-```
-
----
-
-## Production Build
-
-### Build for Production
+## Development Workflow
 
 ```bash
+npm run dev
+npm run typecheck
 npm run build
 ```
 
-Creates an optimized production build in `.next/`.
+Notes:
 
-### Start Production Server
-
-```bash
-npm start
-```
-
-Runs the production build on **http://localhost:3000**.
+- `npm run lint` currently aliases to TypeScript type-checking.
+- `npm run build` runs `prisma generate` and then `next build`.
 
 ---
 
-## Deployment Options
+## Manual Ingestion
 
-### Vercel (Recommended)
-
-1. Push code to GitHub
-2. Connect repo to Vercel
-3. Set environment variables in Vercel dashboard
-4. Deploy
-
-**Note:** SQLite doesn't persist on Vercel's serverless functions. For production, migrate to:
-- **Vercel Postgres** or **Supabase** (free tier available)
-- Update `schema.prisma` to use `postgresql` provider
-
-### Self-Hosted (VPS)
+Authenticated users can trigger ingestion through the UI or the protected API:
 
 ```bash
-# On your server:
-git clone <repo-url>
-cd GPF_Dashboard
+curl -X POST http://localhost:3000/api/sync \
+  --cookie "<authenticated-session-cookie>"
+```
+
+For cron-style ingestion:
+
+```bash
+curl -X POST http://localhost:3000/api/cron/ingest \
+  -H "Authorization: Bearer <CRON_SECRET>"
+```
+
+The Settings page now uses `/api/sync`, so you do not need to expose any public cron secret to the browser.
+
+---
+
+## Deploying to Vercel
+
+### 1. Import the repository into Vercel
+
+Vercel will detect this as a Next.js project automatically.
+
+### 2. Add environment variables
+
+Add these in the Vercel project settings:
+
+- `DATABASE_URL`
+- `DIRECT_URL`
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `CRON_SECRET`
+
+Recommended values:
+
+- `DATABASE_URL`: Supabase transaction pooler, port `6543`
+- `DIRECT_URL`: Supabase session/direct connection, port `5432`
+- `NEXTAUTH_URL`: `https://your-project.vercel.app` or your custom domain
+
+### 3. Run production migrations
+
+Before the first production deployment, apply the checked-in migrations to Supabase:
+
+```bash
+npx prisma migrate deploy
+```
+
+Do this from your machine or CI against the production database. Do not rely on the Vercel runtime to create tables on first request.
+
+### 4. Deploy
+
+Once the env vars are present and migrations are applied, a normal Vercel deployment should build successfully.
+
+---
+
+## Vercel Cron Behavior
+
+This repo includes `vercel.json` with a cron job targeting:
+
+```text
+/api/cron/ingest
+```
+
+The default schedule in this repo is:
+
+```text
+0 6 * * *
+```
+
+That once-daily schedule is chosen because Vercel Hobby cron jobs support only daily execution. If you are on a paid Vercel plan and want ingestion every 2 hours, change the schedule back to:
+
+```text
+0 */2 * * *
+```
+
+Vercel cron requests are authenticated with the `CRON_SECRET` bearer token.
+
+---
+
+## Self-Hosted Deployments
+
+For a long-running VPS or container deployment:
+
+```bash
 npm install
-npx prisma generate
 npx prisma migrate deploy
 npm run build
 npm start
 ```
 
-Use **PM2** for process management:
-
-```bash
-npm install -g pm2
-pm2 start npm --name "geopulse" -- start
-pm2 save
-pm2 startup
-```
-
-### Docker (Optional)
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --production
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
----
-
-## Automated Ingestion
-
-### Vercel Cron
-
-Add to `vercel.json`:
-
-```json
-{
-  "crons": [
-    {
-      "path": "/api/cron/ingest",
-      "schedule": "0 */2 * * *"
-    }
-  ]
-}
-```
-
-Runs every 2 hours. Requires `CRON_SECRET` environment variable.
-
-### External Cron (cron-job.org, EasyCron)
-
-Set up an HTTP POST to:
-```
-POST https://your-domain.com/api/cron/ingest
-Authorization: Bearer <CRON_SECRET>
-```
-
-Schedule: Every 2 hours (`0 */2 * * *`)
-
-### System Cron (Self-Hosted)
-
-```bash
-crontab -e
-# Add:
-0 */2 * * * curl -X POST http://localhost:3000/api/cron/ingest -H "Authorization: Bearer your-secret"
-```
+In self-hosted environments, the in-process scheduler can still run outside Vercel. On Vercel, the app uses `vercel.json` cron jobs instead.
 
 ---
 
 ## Troubleshooting
 
-### "EPERM" error during Prisma generate
-**Cause:** DLL locked by running dev server.
-**Fix:** Kill all Node processes, then re-run:
-```bash
-taskkill //F //IM node.exe    # Windows
-npx prisma generate
-```
+### Vercel deployment fails before build starts
 
-### "Could not find declaration for vader-sentiment"
-**Cause:** Missing type declaration.
-**Fix:** Ensure `src/types/vader-sentiment.d.ts` exists with the module declaration.
+Check `vercel.json`. Unsupported cron schedules on Hobby plans can block deployment. This repo now uses a Hobby-safe daily schedule by default.
 
-### Events not loading
-**Cause:** No ingestion has been run yet.
-**Fix:** Trigger ingestion via Settings page or `/api/cron/ingest`.
+### Build succeeds locally but auth fails on Vercel
 
-### $0 prices on stocks
-**Cause:** Google Finance doesn't support the symbol or exchange mapping is wrong.
-**Fix:** Check `EXCHANGE_MAP` in `src/lib/sources/yahoo.ts` and add the correct exchange.
+Check `NEXTAUTH_URL` and `NEXTAUTH_SECRET`. `NEXTAUTH_URL` must match the deployed domain you are actually using.
 
-### Authentication redirect loop
-**Cause:** `NEXTAUTH_SECRET` not set or mismatched.
-**Fix:** Ensure `.env` has `NEXTAUTH_SECRET` and restart the dev server.
+### App deploys but database calls fail
 
----
+Check that:
 
-## Test Credentials
+- `DATABASE_URL` points to the Supabase transaction pooler on port `6543`
+- `DIRECT_URL` points to the Supabase direct/session connection on port `5432`
+- `npx prisma migrate deploy` has already been run against the target database
 
-For development and testing:
+### Manual ingestion from Settings fails
 
-| Field | Value |
-|---|---|
-| Email | test@geopulse.dev |
-| Password | testpass123 |
-
-Create via `/auth/signup` if the account doesn't exist yet.
+That route should use `/api/sync` and requires an authenticated session. If it still fails, verify you are signed in and that the database connection works.

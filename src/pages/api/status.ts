@@ -2,8 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../lib/prisma";
 import { startScheduler } from "../../lib/ingest/scheduler";
 
-// Start background scheduler on first API call (idempotent)
-startScheduler();
+// Vercel uses vercel.json cron jobs. Keep the in-process scheduler for self-hosted runtimes only.
+if (process.env.VERCEL !== "1") {
+  startScheduler();
+}
 
 export default async function handler(_req: NextApiRequest, res: NextApiResponse) {
   const lastLog = await prisma.ingestionLog.findFirst({

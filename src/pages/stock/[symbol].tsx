@@ -296,10 +296,10 @@ export default function StockDetail() {
               <h3 className="text-[11px] font-semibold text-zinc-400">How This Works</h3>
               <div className="mt-2 space-y-2 text-[10px] text-zinc-600 leading-relaxed">
                 <p>
-                  <span className="text-zinc-400">1. News Detection:</span> Events are scraped from 27+ RSS feeds across 20 countries every 2 hours.
+                  <span className="text-zinc-400">1. News Detection:</span> Events are scraped from 27 RSS feeds across 7 regions, plus GDELT.
                 </p>
                 <p>
-                  <span className="text-zinc-400">2. Keyword Matching:</span> Each event is matched to {upperSymbol} via 100+ keyword rules (e.g. "oil crisis" → USO, "defense spending" → ITA).
+                  <span className="text-zinc-400">2. Keyword Matching:</span> Each event is matched to {upperSymbol} via 113 keyword rules (for example, "oil crisis" to USO or "defense spending" to ITA).
                 </p>
                 <p>
                   <span className="text-zinc-400">3. Live Prices:</span> Real-time price data from Google Finance shows actual market movement.

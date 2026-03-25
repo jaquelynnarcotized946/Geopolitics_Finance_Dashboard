@@ -72,9 +72,7 @@ export default function Settings() {
   const handleManualIngest = async () => {
     setTriggerStatus("running");
     try {
-      const res = await fetch(`/api/cron/ingest?secret=${encodeURIComponent(process.env.NEXT_PUBLIC_CRON_SECRET || "")}`, {
-        headers: { "x-cron-secret": process.env.NEXT_PUBLIC_CRON_SECRET || "" },
-      });
+      const res = await fetch("/api/sync", { method: "POST" });
       setTriggerStatus(res.ok ? "done" : "error");
     } catch {
       setTriggerStatus("error");
@@ -211,7 +209,7 @@ export default function Settings() {
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                 <span className="text-sm text-zinc-500">Auto-ingest cycle</span>
-                <span className="text-sm font-semibold text-white">Every 2 hours</span>
+                <span className="text-sm font-semibold text-white">Scheduled + manual sync</span>
               </div>
               <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                 <span className="text-sm text-zinc-500">Data Sources</span>
@@ -219,7 +217,7 @@ export default function Settings() {
               </div>
               <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
                 <span className="text-sm text-zinc-500">Correlation Engine</span>
-                <span className="text-sm font-semibold text-white">174 keyword rules</span>
+                <span className="text-sm font-semibold text-white">113 keyword rules</span>
               </div>
               <button
                 onClick={handleManualIngest}

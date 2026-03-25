@@ -75,7 +75,7 @@ export default function Home() {
             </h2>
             <p className="mt-3 text-sm text-slate">
               GeoPulse unifies RSS signals, GDELT coverage, and market feeds into a single
-              command center. It auto-refreshes every 2 hours, learns patterns from history,
+              command center. It refreshes on a schedule, learns patterns from history,
               and shows you exactly which assets moved because of each geopolitical event.
             </p>
           </div>
@@ -88,7 +88,7 @@ export default function Home() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
-                Live stock prices with Yahoo Finance
+                Live stock prices with Google Finance
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
@@ -96,7 +96,7 @@ export default function Home() {
               </li>
               <li className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
-                Auto-ingestion every 2 hours
+                Scheduled ingestion + manual sync
               </li>
             </ul>
           </div>

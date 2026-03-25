@@ -10,7 +10,7 @@ Built for analysts, investors, and curious minds who want Bloomberg-level insigh
 
 Geopolitical events move markets every day. When OPEC cuts oil output, energy stocks surge. When trade tensions escalate, semiconductor ETFs drop. But connecting the dots between world events and market impact requires expensive terminals, fragmented news sources, and domain expertise.
 
-**GeoPulse solves this.** It automatically ingests news from 20 countries, identifies which financial instruments are affected, measures sentiment, and learns patterns over time — all presented through an intuitive intelligence dashboard.
+**GeoPulse solves this.** It automatically ingests news from 27 RSS feeds across 7 regions plus GDELT, identifies which financial instruments are affected, measures sentiment, and learns patterns over time — all presented through an intuitive intelligence dashboard.
 
 ---
 
@@ -19,13 +19,13 @@ Geopolitical events move markets every day. When OPEC cuts oil output, energy st
 GeoPulse runs a continuous intelligence pipeline:
 
 ```
-News Sources (50+ feeds, 20 countries)
+News Sources (27 RSS feeds + GDELT)
         |
         v
    Ingestion Engine ──> Deduplicate by URL ──> Store events
         |
         v
-   Correlation Engine ──> Match against 174 keyword-symbol mappings
+   Correlation Engine ──> Match against 113 keyword-symbol mappings
         |                  using word-boundary regex (no false positives)
         |
         v
@@ -42,7 +42,7 @@ News Sources (50+ feeds, 20 countries)
                  Personalized "For You" feed
 ```
 
-**Example:** An article about OPEC production cuts triggers the correlation engine. It matches the keyword `oil` (with word-boundary regex, so "turmoil" is ignored), maps it to USO, XLE, XOM, CVX, fetches live prices from Google Finance, and creates a correlation with direction and magnitude. Over time, the pattern learner recognizes that "Energy" events historically move USO up ~2.3% with 94% confidence across 47 occurrences.
+**Example:** An article about OPEC production cuts triggers the correlation engine. It matches the keyword `oil` (with word-boundary regex, so "turmoil" is ignored), maps it to USO, XLE, XOM, CVX, fetches live prices from Google Finance, and creates correlations with direction and magnitude. Over time, the pattern learner aggregates similar events into repeatable directional signals.
 
 ---
 
@@ -50,7 +50,7 @@ News Sources (50+ feeds, 20 countries)
 
 **Intelligence Dashboard** — 16 filterable categories (Conflict, Energy, Economic, Technology, Trade, Healthcare, Climate, Defense, Cybersecurity, Nuclear, Agriculture, Shipping, Elections, Sanctions, Science, General). Severity-scored events with sentiment badges. Personalized "For You" feed based on your interests.
 
-**Correlation Engine** — 174 keyword-to-symbol mappings across 17 categories. Word-boundary regex matching prevents false positives (e.g., "turmoil" does not match "oil"). Bidirectional navigation lets you go from an event to its affected stocks, or from a stock to all related news.
+**Correlation Engine** — 113 keyword-to-symbol mappings across 11 categories. Word-boundary regex matching prevents false positives (e.g., "turmoil" does not match "oil"). Bidirectional navigation lets you go from an event to its affected stocks, or from a stock to all related news.
 
 **Interactive World Map** — Per-country markers sized by event count and colored by severity. Click any country to see its events and which stocks they affect. Covers 40+ countries with coordinate mapping.
 
@@ -76,8 +76,8 @@ News Sources (50+ feeds, 20 countries)
 - **Charts:** TradingView embedded widgets
 - **Map:** react-simple-maps
 - **Sentiment:** VADER (vader-sentiment, local)
-- **Market Data:** Google Finance HTML scraping (60+ symbols)
-- **News:** 50+ RSS feeds via rss-parser + GDELT API
+- **Market Data:** Google Finance HTML scraping (50+ symbols)
+- **News:** 27 RSS feeds via rss-parser + GDELT API
 
 ---
 
@@ -102,8 +102,18 @@ Open `http://localhost:3000`. Sign up, complete onboarding, and trigger your fir
 | `DATABASE_URL` | Yes | Supabase pooler connection string (port 6543) |
 | `DIRECT_URL` | Yes | Supabase direct connection string (port 5432) |
 | `NEXTAUTH_SECRET` | Yes | Random secret for JWT (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | Yes | App URL (`http://localhost:3000`) |
-| `CRON_SECRET` | No | Token for automated ingestion endpoint |
+| `NEXTAUTH_URL` | Yes | `http://localhost:3000` locally, deployed URL on Vercel in production |
+| `CRON_SECRET` | Recommended | Token for the cron ingestion endpoint |
+
+### Vercel + Supabase
+
+1. Set `DATABASE_URL` to the Supabase transaction pooler string on port `6543`.
+2. Set `DIRECT_URL` to the Supabase session/direct string on port `5432`.
+3. Set `NEXTAUTH_URL` to your deployed domain, for example `https://your-project.vercel.app`.
+4. Set `NEXTAUTH_SECRET` and `CRON_SECRET` in the Vercel dashboard.
+5. Run `npx prisma migrate deploy` against the production database before the first live deploy.
+
+This repository defaults `vercel.json` to a once-per-day cron schedule so Hobby deployments succeed. If you are on a paid Vercel plan and want the previous every-2-hours schedule, change it back to `0 */2 * * *`.
 
 ---
 
@@ -112,7 +122,7 @@ Open `http://localhost:3000`. Sign up, complete onboarding, and trigger your fir
 ```mermaid
 graph TB
     subgraph Sources["Data Sources"]
-        RSS["50+ RSS Feeds"]
+        RSS["27 RSS Feeds"]
         GDELT["GDELT API"]
         GF["Google Finance"]
     end
@@ -184,7 +194,7 @@ erDiagram
 ## Project Structure
 
 ```
-├── config/feeds.json             # RSS feed configuration (50+ feeds, 20 countries)
+├── config/feeds.json             # RSS feed configuration (27 feeds across 7 regions)
 ├── prisma/schema.prisma          # Database schema (9 models)
 ├── docs/                         # Technical documentation (10 files)
 ├── src/
@@ -198,7 +208,7 @@ erDiagram
 │   │   └── api/                  # 15 API routes
 │   ├── components/               # UI components (layout, dashboard, ui)
 │   └── lib/
-│       ├── correlation/          # 174-mapping correlation engine
+│       ├── correlation/          # 113-mapping correlation engine
 │       ├── ingest/               # RSS + GDELT ingestion pipeline
 │       ├── analysis/             # VADER sentiment analysis
 │       ├── scoring/              # Multi-signal severity scoring
@@ -233,7 +243,7 @@ Full reference with request/response examples: [docs/api-reference.md](docs/api-
 |---|---|
 | [Architecture](docs/architecture.md) | System design, data flow, key decisions |
 | [Data Pipeline](docs/data-pipeline.md) | Ingestion, deduplication, error handling |
-| [Correlation Engine](docs/correlation-engine.md) | 174 mappings, regex matching, false positive guards |
+| [Correlation Engine](docs/correlation-engine.md) | 113 mappings, regex matching, false positive guards |
 | [Pattern Learning](docs/pattern-learning.md) | Aggregation, confidence scoring, predictions |
 | [Sentiment Analysis](docs/sentiment-analysis.md) | VADER implementation, scoring thresholds |
 | [API Reference](docs/api-reference.md) | All endpoints with examples |
@@ -246,11 +256,11 @@ Full reference with request/response examples: [docs/api-reference.md](docs/api-
 
 ## Coverage
 
-**60+ financial instruments** — SPY, QQQ, NVDA, AAPL, MSFT, GLD, TLT, USO, XLE, ITA, SMH, and more across sector ETFs, commodity ETFs, country ETFs, and individual stocks.
+**53 financial instruments** — SPY, QQQ, NVDA, GLD, TLT, USO, XLE, ITA, SMH, and more across sector ETFs, commodity ETFs, country ETFs, and individual stocks.
 
-**20 countries** — US, UK, Germany, France, India, China, Japan, South Korea, Australia, Russia, Brazil, Mexico, Saudi Arabia, UAE, Israel, Turkey, South Africa, Nigeria, Canada, Qatar.
+**7 configured regions plus GDELT global coverage** — Global, Middle East, North America, Europe, Asia-Pacific, South America, and Africa.
 
-**50+ news sources** — BBC, Al Jazeera, CNBC, NPR, Defense News, Federal Reserve, and regional outlets.
+**27 RSS news sources** — BBC, Al Jazeera, CNBC, NPR, Defense News, Federal Reserve, and regional outlets.
 
 ---
 
