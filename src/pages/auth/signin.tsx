@@ -57,12 +57,6 @@ export default function SignIn() {
             </button>
           </form>
 
-          <div className="mt-4 rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-            <p className="text-[10px] uppercase tracking-widest text-slate mb-1">Test Account</p>
-            <p className="text-xs text-ink">Email: <span className="font-mono text-emerald">test@geopulse.dev</span></p>
-            <p className="text-xs text-ink">Password: <span className="font-mono text-emerald">testpass123</span></p>
-          </div>
-
           <p className="mt-6 text-center text-xs text-slate">
             No account?{" "}
             <Link href="/auth/signup" className="font-semibold !text-emerald">

@@ -1,5 +1,6 @@
 import type { Quote } from "../../lib/hooks/useQuotes";
 import { formatCurrency, formatPct } from "../../lib/format";
+import SymbolHoverCard from "../ui/SymbolHoverCard";
 
 export default function TopMoversCard({ quotes }: { quotes: Quote[] }) {
   const sorted = [...quotes]
@@ -26,7 +27,9 @@ export default function TopMoversCard({ quotes }: { quotes: Quote[] }) {
           >
             <div className="flex items-center gap-2">
               <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
-              <span className="text-[12px] font-bold text-zinc-300">{q.symbol}</span>
+              <SymbolHoverCard symbol={q.symbol}>
+                <span className="text-[12px] font-bold text-zinc-300">{q.symbol}</span>
+              </SymbolHoverCard>
             </div>
             <div className="flex items-center gap-3">
               <span className="text-[11px] text-zinc-500">

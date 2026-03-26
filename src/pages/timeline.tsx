@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import Layout from "../components/layout/Layout";
 import SectionCard from "../components/ui/SectionCard";
 import SeverityBadge from "../components/ui/SeverityBadge";
+import SymbolHoverCard from "../components/ui/SymbolHoverCard";
 import { useEvents } from "../lib/hooks/useEvents";
 import { useQuotes, type Quote } from "../lib/hooks/useQuotes";
 import { relativeTime, formatPct, formatCurrency } from "../lib/format";
@@ -195,20 +196,22 @@ export default function Timeline() {
                             const change = quote?.changePct ?? corr.impactMagnitude;
                             const isUp = corr.impactDirection === "up" || change > 0;
                             return (
-                              <Link href={`/stock/${corr.symbol}`} key={corr.id} className="flex items-center justify-between text-xs hover:bg-white/[0.04] rounded px-1 -mx-1 py-0.5 transition">
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
-                                  <span className="font-bold text-zinc-200">{corr.symbol}</span>
-                                  {quote && (
-                                    <span className="text-zinc-600">
-                                      {formatCurrency(quote.price, quote.currency || "USD")}
-                                    </span>
-                                  )}
-                                </div>
-                                <span className={`font-bold ${isUp ? "text-emerald" : "text-red-400"}`}>
-                                  {isUp ? "\u25B2" : "\u25BC"} {formatPct(isUp ? Math.abs(change) : -Math.abs(change))}
-                                </span>
-                              </Link>
+                              <SymbolHoverCard key={corr.id} symbol={corr.symbol}>
+                                <Link href={`/stock/${corr.symbol}`} className="flex items-center justify-between text-xs hover:bg-white/[0.04] rounded px-1 -mx-1 py-0.5 transition">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
+                                    <span className="font-bold text-zinc-200">{corr.symbol}</span>
+                                    {quote && (
+                                      <span className="text-zinc-600">
+                                        {formatCurrency(quote.price, quote.currency || "USD")}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className={`font-bold ${isUp ? "text-emerald" : "text-red-400"}`}>
+                                    {isUp ? "\u25B2" : "\u25BC"} {formatPct(isUp ? Math.abs(change) : -Math.abs(change))}
+                                  </span>
+                                </Link>
+                              </SymbolHoverCard>
                             );
                           })}
                         </div>

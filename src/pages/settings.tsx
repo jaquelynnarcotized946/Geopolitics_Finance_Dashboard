@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Layout from "../components/layout/Layout";
 import SectionCard from "../components/ui/SectionCard";
+import SymbolHoverCard from "../components/ui/SymbolHoverCard";
 import { useStatus } from "../lib/hooks/useStatus";
 import { usePreferences } from "../lib/hooks/usePreferences";
 import { relativeTime } from "../lib/format";
@@ -144,17 +145,18 @@ export default function Settings() {
                   {POPULAR_SYMBOLS.map((sym) => {
                     const active = symbols.includes(sym);
                     return (
-                      <button
-                        key={sym}
-                        onClick={() => toggleItem(symbols, (v) => setEditSymbols(v), sym)}
-                        className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition ${
-                          active
-                            ? "border-emerald/30 bg-emerald/10 text-emerald"
-                            : "border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        {sym}
-                      </button>
+                      <SymbolHoverCard key={sym} symbol={sym}>
+                        <button
+                          onClick={() => toggleItem(symbols, (v) => setEditSymbols(v), sym)}
+                          className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition ${
+                            active
+                              ? "border-emerald/30 bg-emerald/10 text-emerald"
+                              : "border-white/[0.06] text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
+                          }`}
+                        >
+                          {sym}
+                        </button>
+                      </SymbolHoverCard>
                     );
                   })}
                 </div>

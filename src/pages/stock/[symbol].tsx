@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import useSWR from "swr";
 import Layout from "../../components/layout/Layout";
 import SeverityBadge from "../../components/ui/SeverityBadge";
+import { getAssetMeta } from "../../lib/assets";
 import { relativeTime, formatPct, formatCurrency } from "../../lib/format";
 import { requireAuth } from "../../lib/requireAuth";
 
@@ -52,28 +53,11 @@ interface QuoteData {
   currency?: string;
 }
 
-/* Map symbols to readable names */
-const SYMBOL_NAMES: Record<string, string> = {
-  SPY: "S&P 500 ETF", QQQ: "Nasdaq 100 ETF", GLD: "Gold ETF", XLE: "Energy Sector",
-  TLT: "20+ Year Treasury", ITA: "US Aerospace & Defense", USO: "US Oil Fund", NVDA: "NVIDIA",
-  TSM: "Taiwan Semiconductor", LMT: "Lockheed Martin", RTX: "Raytheon", NOC: "Northrop Grumman",
-  BA: "Boeing", GD: "General Dynamics", FXI: "China Large-Cap ETF", BABA: "Alibaba",
-  KWEB: "China Internet ETF", EWJ: "Japan ETF", EWY: "South Korea ETF", INDA: "India ETF",
-  EWZ: "Brazil ETF", EWG: "Germany ETF", EWU: "UK ETF", EWT: "Taiwan ETF",
-  EZU: "Eurozone ETF", EEM: "Emerging Markets", XLF: "Financials Sector", XLV: "Healthcare Sector",
-  SMH: "Semiconductor ETF", VXX: "Volatility Index", WEAT: "Wheat ETF", CORN: "Corn ETF",
-  UNG: "Natural Gas ETF", ICLN: "Clean Energy ETF", URA: "Uranium ETF",
-  HACK: "Cybersecurity ETF", CRWD: "CrowdStrike", XBI: "Biotech ETF",
-  SLV: "Silver ETF", IAU: "Gold Trust", TIP: "TIPS Bond ETF", BDRY: "Dry Bulk Shipping",
-  XOM: "Exxon Mobil", CVX: "Chevron", AVAV: "AeroVironment", HII: "Huntington Ingalls",
-  XLI: "Industrials Sector", IYR: "Real Estate ETF", UUP: "US Dollar Fund", BITO: "Bitcoin ETF",
-  DBA: "Agriculture ETF", FXE: "Euro Currency ETF", XLU: "Utilities Sector",
-};
-
 export default function StockDetail() {
   const router = useRouter();
   const { symbol } = router.query as { symbol?: string };
   const upperSymbol = symbol?.toUpperCase() || "";
+  const assetMeta = getAssetMeta(upperSymbol || "UNKNOWN");
 
   const { data, isLoading } = useSWR(
     symbol ? `/api/stocks/${symbol}` : null,
@@ -132,7 +116,7 @@ export default function StockDetail() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-xl font-bold text-white tracking-wide">{upperSymbol}</h1>
-                <span className="text-sm text-zinc-500">{SYMBOL_NAMES[upperSymbol] || "Stock"}</span>
+                <span className="text-sm text-zinc-500">{assetMeta.name}</span>
               </div>
               <p className="text-[10px] text-zinc-600">
                 {totalEvents} news events · {patterns.length} learned patterns

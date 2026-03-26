@@ -1,5 +1,6 @@
 import { usePatterns } from "../../lib/hooks/usePatterns";
 import { formatPct } from "../../lib/format";
+import SymbolHoverCard from "../ui/SymbolHoverCard";
 
 export default function PatternInsightsCard() {
   const { patterns, isLoading } = usePatterns();
@@ -34,7 +35,9 @@ export default function PatternInsightsCard() {
           className="flex items-center justify-between rounded-lg border border-white/[0.05] bg-white/[0.02] px-3 py-2"
         >
           <div>
-            <span className="text-[12px] font-bold text-zinc-300">{p.symbol} </span>
+            <SymbolHoverCard symbol={p.symbol}>
+              <span className="text-[12px] font-bold text-zinc-300">{p.symbol} </span>
+            </SymbolHoverCard>
             <span className={`text-[12px] font-bold ${p.direction === "up" ? "text-emerald" : "text-red-400"}`}>
               {p.direction === "up" ? "+" : "-"}{formatPct(p.avgImpactPct)}
             </span>

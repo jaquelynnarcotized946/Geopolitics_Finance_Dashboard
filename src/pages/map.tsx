@@ -9,6 +9,7 @@ import {
 } from "react-simple-maps";
 import Layout from "../components/layout/Layout";
 import SeverityBadge from "../components/ui/SeverityBadge";
+import SymbolHoverCard from "../components/ui/SymbolHoverCard";
 import { useEvents, type EventItem } from "../lib/hooks/useEvents";
 import { relativeTime } from "../lib/format";
 import { requireAuth } from "../lib/requireAuth";
@@ -429,17 +430,18 @@ export default function MapView() {
                           {correlations.slice(0, 4).map((corr) => {
                             const isUp = corr.impactDirection === "up" || corr.impactMagnitude > 0;
                             return (
-                              <Link
-                                href={`/stock/${corr.symbol}`}
-                                key={corr.id}
-                                className="inline-flex items-center gap-1 rounded border border-white/[0.05] bg-white/[0.02] px-1.5 py-0.5 text-[9px] hover:bg-white/[0.06] hover:border-white/[0.1] transition"
-                              >
-                                <span className={`h-1 w-1 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
-                                <span className="font-bold text-zinc-400">{corr.symbol}</span>
-                                <span className={isUp ? "text-emerald" : "text-red-400"}>
-                                  {isUp ? "↑" : "↓"}
-                                </span>
-                              </Link>
+                              <SymbolHoverCard key={corr.id} symbol={corr.symbol}>
+                                <Link
+                                  href={`/stock/${corr.symbol}`}
+                                  className="inline-flex items-center gap-1 rounded border border-white/[0.05] bg-white/[0.02] px-1.5 py-0.5 text-[9px] hover:bg-white/[0.06] hover:border-white/[0.1] transition"
+                                >
+                                  <span className={`h-1 w-1 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
+                                  <span className="font-bold text-zinc-400">{corr.symbol}</span>
+                                  <span className={isUp ? "text-emerald" : "text-red-400"}>
+                                    {isUp ? "↑" : "↓"}
+                                  </span>
+                                </Link>
+                              </SymbolHoverCard>
                             );
                           })}
                         </div>

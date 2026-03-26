@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { EventItem } from "../../lib/hooks/useEvents";
 import type { Quote } from "../../lib/hooks/useQuotes";
 import SeverityBadge from "../ui/SeverityBadge";
+import SymbolHoverCard from "../ui/SymbolHoverCard";
 import { relativeTime, formatPct, formatCurrency } from "../../lib/format";
 
 type Props = {
@@ -79,22 +80,23 @@ export default function EventMarketPanel({ events, quoteMap }: Props) {
                   const isUp = corr.impactDirection === "up" || change > 0;
 
                   return (
-                    <Link
-                      href={`/stock/${corr.symbol}`}
-                      key={corr.id}
-                      className="flex items-center gap-2 rounded-md border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5 hover:bg-white/[0.05] hover:border-white/[0.1] transition"
-                    >
-                      <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
-                      <span className="text-[11px] font-bold text-zinc-300">{corr.symbol}</span>
-                      {quote && quote.price > 0 && (
-                        <span className="text-[10px] text-zinc-600">
-                          {formatCurrency(quote.price, quote.currency || "USD")}
+                    <SymbolHoverCard key={corr.id} symbol={corr.symbol}>
+                      <Link
+                        href={`/stock/${corr.symbol}`}
+                        className="flex items-center gap-2 rounded-md border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5 hover:bg-white/[0.05] hover:border-white/[0.1] transition"
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
+                        <span className="text-[11px] font-bold text-zinc-300">{corr.symbol}</span>
+                        {quote && quote.price > 0 && (
+                          <span className="text-[10px] text-zinc-600">
+                            {formatCurrency(quote.price, quote.currency || "USD")}
+                          </span>
+                        )}
+                        <span className={`text-[11px] font-bold ${isUp ? "text-emerald" : "text-red-400"}`}>
+                          {formatPct(isUp ? Math.abs(change) : -Math.abs(change))}
                         </span>
-                      )}
-                      <span className={`text-[11px] font-bold ${isUp ? "text-emerald" : "text-red-400"}`}>
-                        {formatPct(isUp ? Math.abs(change) : -Math.abs(change))}
-                      </span>
-                    </Link>
+                      </Link>
+                    </SymbolHoverCard>
                   );
                 })}
               </div>
