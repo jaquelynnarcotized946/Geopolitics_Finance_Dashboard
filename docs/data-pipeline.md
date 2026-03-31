@@ -100,15 +100,9 @@ The run finishes by preparing the data needed for morning-brief ranking and late
 
 ## Operational Behavior
 
-### Manual trigger
+All ingestion is now fully automatic via scheduled cron jobs. No manual intervention required.
 
-```text
-POST /api/sync
-```
-
-Requires an authenticated admin user.
-
-### Scheduled trigger
+### Scheduled Triggers
 
 ```text
 POST /api/cron/ingest

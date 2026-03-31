@@ -159,7 +159,6 @@ Run the smoke script against a local or deployed production build by setting `BA
 | `POST` | `/api/digests/send` | Generate a preview or simulated personalized digest |
 | `POST` | `/api/billing/checkout` | Create Stripe subscription checkout session |
 | `POST` | `/api/billing/portal` | Open Stripe billing portal |
-| `POST` | `/api/sync` | Admin-triggered ingestion |
 | `GET/POST` | `/api/cron/ingest` | Scheduled ingestion entrypoint |
 | `GET/POST` | `/api/cron/digests` | Scheduled morning-brief processing entrypoint |
 

@@ -407,10 +407,6 @@ Response includes:
 - `stats.totalPatterns`
 - `stats.degradedSources`
 
-### `POST /api/sync`
-
-Trigger ingestion manually. Requires an authenticated admin user.
-
 ### `GET` or `POST /api/cron/ingest`
 
 Protected cron entrypoint for ingestion.

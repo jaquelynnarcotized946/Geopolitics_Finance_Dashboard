@@ -67,7 +67,6 @@ Perplexity-style interest picker shown to new users:
 User preference management:
 - **Interest management** — toggle topics, regions, and stocks inline
 - **System status** — shows event count, correlation count, last ingestion time
-- **Automation controls** — manual sync trigger
 - **Account info** — email and account details
 
 ### Watchlist (`/assets`) — `src/pages/assets.tsx`

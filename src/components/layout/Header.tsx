@@ -5,30 +5,13 @@ import { useEntitlements } from "../../lib/hooks/useEntitlements";
 import { getSupabaseBrowserClient } from "../../lib/supabase-browser";
 
 export default function Header({ onOpenNavigation }: { onOpenNavigation?: () => void }) {
-  const { status, mutate } = useStatus();
+  const { status } = useStatus();
   const { entitlements } = useEntitlements();
-  const [syncing, setSyncing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const lastSync = status?.lastIngestion?.completedAt
     ? relativeTime(status.lastIngestion.completedAt)
     : "never";
-
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      const res = await fetch("/api/sync", { method: "POST" });
-      const data = await res.json();
-      if (data.ok) {
-        // Refresh status after sync
-        mutate();
-      }
-    } catch {
-      // silently fail
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -75,13 +58,6 @@ export default function Header({ onOpenNavigation }: { onOpenNavigation?: () => 
             }`} />
             Synced {lastSync}
           </span>
-          <button
-            className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-400 transition hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-40"
-            onClick={handleSync}
-            disabled={syncing}
-          >
-            {syncing ? "Syncing..." : "Sync Now"}
-          </button>
           <button
             className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-500 transition hover:text-zinc-300 disabled:opacity-50"
             onClick={handleSignOut}

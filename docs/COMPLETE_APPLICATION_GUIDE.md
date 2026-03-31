@@ -731,13 +731,6 @@ Back to normal
 - Requires: `Authorization: Bearer CRON_SECRET`
 - Timezone-aware (adjusts for each user)
 
-### Admin Routes
-
-**POST /api/sync** (if ADMIN_EMAILS set)
-- Manually trigger ingestion
-- Requires: Email in ADMIN_EMAILS list
-- Useful for debugging
-
 ---
 
 ## Deployment & Infrastructure

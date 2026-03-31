@@ -46,7 +46,6 @@ export default function Settings() {
   const { preferences, savePreferences, isLoading: prefsLoading } = usePreferences();
   const { entitlements } = useEntitlements();
 
-  const [triggerStatus, setTriggerStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [billingStatus, setBillingStatus] = useState<"idle" | "loading" | "error">("idle");
   const [digestStatus, setDigestStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [saving, setSaving] = useState(false);
@@ -93,18 +92,6 @@ export default function Settings() {
     setSaving(true);
     await savePreferences(effectiveForm);
     setSaving(false);
-  };
-
-  const handleManualIngest = async () => {
-    setTriggerStatus("running");
-    try {
-      const res = await fetch("/api/sync", { method: "POST" });
-      setTriggerStatus(res.ok ? "done" : "error");
-      mutateStatus();
-    } catch {
-      setTriggerStatus("error");
-    }
-    setTimeout(() => setTriggerStatus("idle"), 3000);
   };
 
   const handleDigestPreview = async () => {
@@ -384,32 +371,6 @@ export default function Settings() {
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <SectionCard title="Automation" subtitle="Admin-only pipeline controls once ADMIN_EMAILS is configured.">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                <span className="text-sm text-zinc-500">Auto-ingest cycle</span>
-                <span className="text-sm font-semibold text-white">Scheduled + manual sync</span>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                <span className="text-sm text-zinc-500">Morning digest</span>
-                <span className="text-sm font-semibold text-white">{effectiveForm.emailDigestEnabled ? "Enabled" : "Disabled"}</span>
-              </div>
-              <button
-                onClick={handleManualIngest}
-                disabled={triggerStatus === "running"}
-                className="btn-primary w-full disabled:opacity-50"
-              >
-                {triggerStatus === "running"
-                  ? "Running ingestion..."
-                  : triggerStatus === "done"
-                  ? "Ingestion complete"
-                  : triggerStatus === "error"
-                  ? "Sync failed or not permitted"
-                  : "Trigger manual ingestion"}
-              </button>
-            </div>
-          </SectionCard>
-
           <SectionCard title="Access Ladder" subtitle="Anonymous preview, full free account, then premium for heavier daily use.">
             <div className="space-y-2 text-[11px] text-zinc-500">
               <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
