@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { requireAuth } from "../lib/serverAuth";
+import PremiumOfferModal from "../components/ui/PremiumOfferModal";
 
 const TOPIC_OPTIONS = [
   { key: "energy", label: "Energy & Oil", icon: "EN" },
@@ -67,6 +68,28 @@ export default function Onboarding() {
   const [regions, setRegions] = useState<string[]>([]);
   const [symbols, setSymbols] = useState<string[]>(["SPY", "QQQ", "GLD"]);
   const [saving, setSaving] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const [trialEnd, setTrialEnd] = useState<Date | null>(null);
+  const [userCount, setUserCount] = useState(0);
+
+  useEffect(() => {
+    // Fetch user's subscription info to get trial end date and user count
+    const fetchTrialInfo = async () => {
+      try {
+        const res = await fetch("/api/me/entitlements");
+        const data = await res.json();
+        if (data.trialEnd) {
+          setTrialEnd(new Date(data.trialEnd));
+        }
+        if (data.registeredUsers !== undefined) {
+          setUserCount(data.registeredUsers);
+        }
+      } catch (error) {
+        console.error("Failed to fetch trial info:", error);
+      }
+    };
+    fetchTrialInfo();
+  }, []);
 
   const toggleItem = (list: string[], setList: (v: string[]) => void, item: string) => {
     setList(list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
@@ -88,7 +111,13 @@ export default function Onboarding() {
           deliveryChannels: ["email"],
         }),
       });
-      router.push("/dashboard");
+
+      // Show premium modal before redirecting if user has trial
+      if (trialEnd && userCount > 10) {
+        setShowPremiumModal(true);
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error) {
       console.error("Failed to save preferences:", error);
       setSaving(false);
@@ -287,6 +316,14 @@ export default function Onboarding() {
         </div>
       </div>
     </div>
+      {/* Premium Offer Modal */}
+      {showPremiumModal && trialEnd && (
+        <PremiumOfferModal
+          trialEndDate={trialEnd}
+          userCount={userCount}
+          onSkip={() => router.push("/dashboard")}
+        />
+      )}
   );
 }
 

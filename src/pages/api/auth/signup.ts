@@ -3,6 +3,7 @@ import { createLocalUser } from "../../../lib/auth";
 import { enforceRateLimit, getRequestIp } from "../../../lib/rateLimit";
 import { getSupabaseAdminClient } from "../../../lib/supabase-admin";
 import { verifyTurnstileToken } from "../../../lib/turnstile";
+import { prisma } from "../../../lib/prisma";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -116,11 +117,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      await createLocalUser({
+      // Get current user count to check if this is one of the first 10 users
+      const userCount = await prisma.user.count();
+      const isFirstTenUser = userCount < 10;
+
+      const user = await createLocalUser({
         name: trimmedName,
         email: normalizedEmail,
         supabaseAuthId: data.user.id,
       });
+
+      // Create subscription with trial or lifetime premium
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7); // 7 days from now
+
+      if (isFirstTenUser) {
+        // First 10 users get lifetime premium
+        await prisma.subscription.create({
+          data: {
+            userId: user.id,
+            provider: "manual",
+            status: "lifetime",
+            plan: "premium",
+            billingInterval: "lifetime",
+            currentPeriodEnd: null,
+            trialEnd: null,
+            cancelAtPeriodEnd: false,
+          },
+        });
+      } else {
+        // Everyone else gets 7-day free trial
+        await prisma.subscription.create({
+          data: {
+            userId: user.id,
+            status: "trialing",
+            plan: "free",
+            billingInterval: "monthly",
+            trialEnd: trialEndDate,
+          },
+        });
+      }
     } catch (error) {
       await supabaseAdmin.auth.admin.deleteUser(data.user.id).catch(() => undefined);
       throw error;

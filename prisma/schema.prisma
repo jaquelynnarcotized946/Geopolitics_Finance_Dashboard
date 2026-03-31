@@ -215,6 +215,7 @@ model Subscription {
   plan                   String   @default("free")
   billingInterval        String   @default("monthly")
   currentPeriodEnd       DateTime?
+  trialEnd               DateTime? // Free trial period end date
   cancelAtPeriodEnd      Boolean  @default(false)
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt

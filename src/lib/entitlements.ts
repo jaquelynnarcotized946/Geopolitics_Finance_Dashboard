@@ -29,8 +29,30 @@ export async function getProductState(userId: string) {
   ]);
 
   const betaUnlocked = userCount < FEATURE_LIMITS.betaUserThreshold;
-  const plan = subscription?.plan || "free";
-  const premiumActive = plan === "premium";
+
+  // Determine plan: check if trial expired
+  let plan = subscription?.plan || "free";
+  let premiumActive = plan === "premium" || plan === "lifetime";
+  let onTrial = false;
+
+  // Check if user has an active trial
+  if (subscription?.status === "trialing" && subscription?.trialEnd) {
+    const now = new Date();
+    if (now < subscription.trialEnd) {
+      // Trial is still active, grant premium benefits
+      onTrial = true;
+      premiumActive = true;
+    } else {
+      // Trial has expired, convert to free
+      plan = "free";
+      premiumActive = false;
+      // Update subscription status
+      await prisma.subscription.update({
+        where: { userId },
+        data: { status: "free" },
+      });
+    }
+  }
 
   return {
     betaUnlocked,
@@ -38,6 +60,7 @@ export async function getProductState(userId: string) {
     registeredUsers: userCount,
     plan,
     premiumActive,
+    onTrial,
     billingEnabled: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID_MONTHLY),
     upgradePreview: !premiumActive,
   };
