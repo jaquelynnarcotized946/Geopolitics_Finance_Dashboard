@@ -125,6 +125,7 @@ export default function Onboarding() {
   };
 
   return (
+    <>
     <div className="flex min-h-screen items-center justify-center bg-black p-4">
       <div className="w-full max-w-2xl">
         <div className="mb-8 text-center">
@@ -324,6 +325,7 @@ export default function Onboarding() {
           onSkip={() => router.push("/dashboard")}
         />
       )}
+    </>
   );
 }
 
