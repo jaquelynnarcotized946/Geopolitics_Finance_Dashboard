@@ -36,14 +36,22 @@ function maybeSweepExpiredBuckets() {
   }
 }
 
-export function getRequestIp(req: NextApiRequest) {
-  const forwarded = req.headers["x-forwarded-for"];
-  if (Array.isArray(forwarded)) {
-    return forwarded[0]?.split(",")[0]?.trim() || "unknown";
+function firstForwardedValue(header: string | string[] | undefined) {
+  if (Array.isArray(header)) {
+    return header[0]?.split(",")[0]?.trim();
   }
 
-  if (typeof forwarded === "string" && forwarded.length > 0) {
-    return forwarded.split(",")[0]?.trim() || "unknown";
+  if (typeof header === "string" && header.length > 0) {
+    return header.split(",")[0]?.trim();
+  }
+
+  return undefined;
+}
+
+export function getRequestIp(req: NextApiRequest) {
+  const vercelForwarded = firstForwardedValue(req.headers["x-vercel-forwarded-for"]);
+  if (vercelForwarded) {
+    return vercelForwarded;
   }
 
   const realIp = req.headers["x-real-ip"];
@@ -53,6 +61,13 @@ export function getRequestIp(req: NextApiRequest) {
 
   if (typeof realIp === "string" && realIp.length > 0) {
     return realIp;
+  }
+
+  if (process.env.VERCEL === "1") {
+    const forwarded = firstForwardedValue(req.headers["x-forwarded-for"]);
+    if (forwarded) {
+      return forwarded;
+    }
   }
 
   return req.socket.remoteAddress || "unknown";
@@ -65,8 +80,9 @@ export async function enforceRateLimit(params: {
   key: string;
   limit: number;
   windowMs: number;
+  failOpen?: boolean;
 }) {
-  const { res, namespace, key, limit, windowMs } = params;
+  const { res, namespace, key, limit, windowMs, failOpen = true } = params;
   const now = new Date();
   const resetAt = new Date(now.getTime() + windowMs);
 
@@ -118,8 +134,23 @@ export async function enforceRateLimit(params: {
     });
 
     return { allowed: true };
-  } catch {
-    // Fail open if the limiter store itself is unavailable; request handlers still retain auth checks.
+  } catch (error) {
+    console.warn(
+      `[RateLimit] ${namespace} limiter unavailable for ${key}: ${(error as Error).message}`
+    );
+
+    if (!failOpen) {
+      const retryAfterSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+      setRateLimitHeaders({
+        res,
+        limit,
+        remaining: 0,
+        retryAfterSeconds,
+      });
+
+      return { allowed: false, degraded: true, retryAfterSeconds };
+    }
+
     setRateLimitHeaders({
       res,
       limit,

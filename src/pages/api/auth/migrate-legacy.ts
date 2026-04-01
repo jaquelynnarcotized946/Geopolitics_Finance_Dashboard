@@ -32,6 +32,7 @@ export default async function handler(
     key: requestIp,
     limit: 10,
     windowMs: 15 * 60 * 1000,
+    failOpen: false,
   });
   if (!ipLimit.allowed) {
     res.status(429).json({ error: "Too many sign-in attempts. Try again later." });
@@ -45,6 +46,7 @@ export default async function handler(
     key: normalizedEmail,
     limit: 6,
     windowMs: 15 * 60 * 1000,
+    failOpen: false,
   });
   if (!emailLimit.allowed) {
     res.status(429).json({ error: "Too many sign-in attempts for this email. Try again later." });

@@ -27,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   if (!stripe || !webhookSecret) {
+    console.error("[Stripe webhook] Stripe is not configured for webhook processing.");
     res.status(503).json({ error: "Stripe is not configured" });
     return;
   }
@@ -43,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
   } catch (error) {
+    console.error("[Stripe webhook] Signature verification failed:", error);
     res.status(400).json({ error: (error as Error).message });
     return;
   }

@@ -55,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     key: requestIp,
     limit: 5,
     windowMs: 10 * 60 * 1000,
+    failOpen: false,
   });
   if (!ipLimit.allowed) {
     res.status(429).json({ error: "Too many signup attempts. Try again later." });
@@ -68,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     key: normalizedEmail,
     limit: 3,
     windowMs: 60 * 60 * 1000,
+    failOpen: false,
   });
   if (!emailLimit.allowed) {
     res.status(429).json({ error: "Too many signup attempts for this email. Try again later." });

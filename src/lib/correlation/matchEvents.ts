@@ -1,6 +1,6 @@
 import { prisma } from "../prisma";
-import { categorizeEvent } from "../scoring/severity";
 import { fetchMarketQuotes } from "../market";
+import { getAssetMeta } from "../assets";
 
 /* ─── keyword → symbol mapping (100+ entries) ─── */
 
@@ -12,7 +12,7 @@ type CorrelationEntry = {
   category: string;
 };
 
-const CORRELATION_MAP: CorrelationEntry[] = [
+const RAW_CORRELATION_MAP: CorrelationEntry[] = [
   // ── Energy ──
   { keywords: ["oil", "crude", "petroleum"], symbol: "USO", baseImpact: 0.8, direction: "up", category: "energy" },
   { keywords: ["oil", "crude", "petroleum"], symbol: "XLE", baseImpact: 0.75, direction: "up", category: "energy" },
@@ -94,7 +94,7 @@ const CORRELATION_MAP: CorrelationEntry[] = [
   { keywords: ["federal reserve", "the fed", "fomc", "fed chair", "fed rate"], symbol: "TLT", baseImpact: 0.75, direction: "mixed", category: "economic" },
   { keywords: ["federal reserve", "the fed", "fed rate"], symbol: "GLD", baseImpact: 0.5, direction: "mixed", category: "economic" },
   { keywords: ["interest rate", "rate hike", "rate cut"], symbol: "TLT", baseImpact: 0.8, direction: "mixed", category: "economic" },
-  { keywords: ["interest rate", "rate hike"], symbol: "XLF", baseImpact: 0.65, direction: "mixed", category: "economic" },
+  { keywords: ["interest rate", "rate hike"], symbol: "XLF", baseImpact: 0.65, direction: "up", category: "economic" },
   { keywords: ["interest rate", "rate hike"], symbol: "IYR", baseImpact: 0.6, direction: "down", category: "economic" },
   { keywords: ["inflation", "cpi", "pce"], symbol: "TIP", baseImpact: 0.65, direction: "up", category: "economic" },
   { keywords: ["inflation", "cpi"], symbol: "GLD", baseImpact: 0.6, direction: "up", category: "economic" },
@@ -173,6 +173,37 @@ const CORRELATION_MAP: CorrelationEntry[] = [
   { keywords: ["emerging market"], symbol: "EEM", baseImpact: 0.55, direction: "mixed", category: "economic" },
 ];
 
+const POSITIVE_FALLBACK_SYMBOLS = new Set([
+  "GLD", "IAU", "SLV", "VXX", "USO", "XLE", "UNG", "WEAT", "BDRY",
+  "ITA", "LMT", "RTX", "NOC", "GD", "AVAV", "HII", "TIP", "TLT", "UUP", "URA",
+]);
+
+const NEGATIVE_FALLBACK_SYMBOLS = new Set([
+  "SPY", "QQQ", "SMH", "NVDA", "TSM", "FXI", "BABA", "KWEB", "EEM",
+  "IYR", "EWJ", "EWY", "EWT", "EZU", "EWG", "EWU", "XLI",
+]);
+
+function normalizeKeywordKey(keywords: string[]) {
+  return [...keywords].sort().join("|");
+}
+
+function dedupeCorrelationMap(entries: CorrelationEntry[]) {
+  const deduped = new Map<string, CorrelationEntry>();
+
+  for (const entry of entries) {
+    const key = `${normalizeKeywordKey(entry.keywords)}::${entry.symbol}`;
+    const existing = deduped.get(key);
+
+    if (!existing || entry.baseImpact > existing.baseImpact) {
+      deduped.set(key, entry);
+    }
+  }
+
+  return Array.from(deduped.values());
+}
+
+const CORRELATION_MAP = dedupeCorrelationMap(RAW_CORRELATION_MAP);
+
 /* ─── Words that cause false positives when substring-matched ─── */
 const FALSE_POSITIVE_GUARDS: Record<string, RegExp> = {
   oil:    /\b(?:turmoil|soil|foil|recoil|toil|broil|oily)\b/i,
@@ -215,6 +246,43 @@ function matchesEntry(text: string, entry: CorrelationEntry): boolean {
 /** Count how many keywords match for weighting */
 function matchCount(text: string, entry: CorrelationEntry): number {
   return entry.keywords.filter((kw) => getKeywordRegex(kw).test(text)).length;
+}
+
+function estimateImpactMagnitude(entry: CorrelationEntry, matchStrength: number) {
+  const heuristic = entry.baseImpact * 1.8 + matchStrength * 0.9;
+  return Number(Math.max(0.35, Math.min(3.5, heuristic)).toFixed(2));
+}
+
+function resolveMixedDirection(symbol: string) {
+  if (POSITIVE_FALLBACK_SYMBOLS.has(symbol)) return "up";
+  if (NEGATIVE_FALLBACK_SYMBOLS.has(symbol)) return "down";
+
+  const assetClass = getAssetMeta(symbol).assetClass.toLowerCase();
+  if (
+    assetClass.includes("commodity") ||
+    assetClass.includes("bond") ||
+    assetClass.includes("currency") ||
+    assetClass.includes("etn")
+  ) {
+    return "up";
+  }
+
+  return "down";
+}
+
+function resolveImpactDirection(
+  entry: CorrelationEntry,
+  quoteChangePct: number | undefined
+) {
+  if (entry.direction !== "mixed") {
+    return entry.direction;
+  }
+
+  if (typeof quoteChangePct === "number" && Number.isFinite(quoteChangePct) && quoteChangePct !== 0) {
+    return quoteChangePct > 0 ? "up" : "down";
+  }
+
+  return resolveMixedDirection(entry.symbol);
 }
 
 export async function generateCorrelations() {
@@ -298,10 +366,11 @@ export async function generateCorrelations() {
     seen.add(key);
 
     const quote = quoteMap.get(entry.symbol);
-    const impactDirection = entry.direction === "mixed"
-      ? (quote?.changePct ?? 0) >= 0 ? "up" : "down"
-      : entry.direction;
-    const impactMagnitude = Math.abs(quote?.changePct ?? 0);
+    const impactDirection = resolveImpactDirection(entry, quote?.changePct);
+    const impactMagnitude =
+      typeof quote?.changePct === "number" && Number.isFinite(quote.changePct)
+        ? Math.abs(quote.changePct)
+        : estimateImpactMagnitude(entry, matchStrength);
 
     correlationsToCreate.push({
       eventId,

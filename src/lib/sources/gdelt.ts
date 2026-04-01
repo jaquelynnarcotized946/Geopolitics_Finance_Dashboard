@@ -1,4 +1,6 @@
 import { recordSourceHealth } from "../ingest/sourceHealth";
+import { estimateSeverity } from "../scoring/severity";
+import { categorizeEvent } from "../intelligence";
 
 export type GdeltEvent = {
   title: string;
@@ -18,6 +20,27 @@ const MAX_ATTEMPTS = 3;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildGdeltSummary(title: string, region: string, category: string) {
+  const scopedRegion = region && region !== "Global" ? ` in ${region}` : "";
+
+  switch (category) {
+    case "conflict":
+    case "defense":
+      return `GDELT flagged a defense or conflict headline${scopedRegion}: ${title}`;
+    case "sanctions":
+    case "trade":
+      return `GDELT flagged a sanctions or trade-policy headline${scopedRegion}: ${title}`;
+    case "energy":
+      return `GDELT flagged an energy-market headline${scopedRegion}: ${title}`;
+    case "economic":
+      return `GDELT flagged a macro or policy headline${scopedRegion}: ${title}`;
+    case "political":
+      return `GDELT flagged a political-risk headline${scopedRegion}: ${title}`;
+    default:
+      return `GDELT flagged a geopolitical signal${scopedRegion}: ${title}`;
+  }
 }
 
 export async function fetchGdeltEvents(): Promise<GdeltEvent[]> {
@@ -86,15 +109,22 @@ export async function fetchGdeltEvents(): Promise<GdeltEvent[]> {
 
   return (payload.articles || [])
     .filter((article) => article.title && article.url)
-    .map((article) => ({
-      title: article.title as string,
-      summary: "GDELT-sourced geopolitical signal.",
-      source: "GDELT",
-      url: article.url as string,
-      feedGuid: article.url as string,
-      publishedAt: article.seendate ? new Date(article.seendate) : new Date(),
-      region: article.sourcecountry_full || "Global",
-      countryCode: article.sourcecountrycode || article.sourcecountry,
-      severity: 6,
-    }));
+    .map((article) => {
+      const title = article.title as string;
+      const region = article.sourcecountry_full || "Global";
+      const category = categorizeEvent(title, region);
+      const summary = buildGdeltSummary(title, region, category);
+
+      return {
+        title,
+        summary,
+        source: "GDELT",
+        url: article.url as string,
+        feedGuid: article.url as string,
+        publishedAt: article.seendate ? new Date(article.seendate) : new Date(),
+        region,
+        countryCode: article.sourcecountrycode || article.sourcecountry,
+        severity: estimateSeverity(title, `${region} ${category}`, "GDELT"),
+      };
+    });
 }

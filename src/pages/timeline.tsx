@@ -8,6 +8,7 @@ import { useEvents } from "../lib/hooks/useEvents";
 import { useQuotes, type Quote } from "../lib/hooks/useQuotes";
 import { relativeTime, formatPct, formatCurrency } from "../lib/format";
 import { resolveCorrelationMove } from "../lib/marketDisplay";
+import { categorizeEvent } from "../lib/intelligence";
 import { requireAuth } from "../lib/serverAuth";
 
 const EVENT_CATEGORIES = [
@@ -24,30 +25,6 @@ const EVENT_CATEGORIES = [
   { key: "trade", label: "Trade" },
   { key: "threat", label: "Threats" },
 ];
-
-function categorizeEvent(title: string, summary: string): string {
-  const text = `${title} ${summary}`.toLowerCase();
-  const rules: Array<{ cat: string; words: string[] }> = [
-    { cat: "conflict", words: ["attack", "missile", "strike", "war", "invasion", "bombing", "airstrike", "troops", "military", "combat", "casualties", "killed", "shelling", "offensive", "drone", "navy", "warship", "defense"] },
-    { cat: "energy", words: ["oil", "opec", "pipeline", "natural gas", "energy", "crude", "refinery", "lng", "petroleum", "fuel", "barrel"] },
-    { cat: "economic", words: ["recession", "inflation", "default", "debt", "bailout", "collapse", "bankruptcy", "crash", "downturn", "unemployment", "rate", "fed", "interest", "central bank", "gdp", "stimulus"] },
-    { cat: "sanctions", words: ["sanction", "embargo", "tariff", "ban", "restriction", "blacklist", "trade war", "export control"] },
-    { cat: "political", words: ["election", "protest", "revolution", "unrest", "overthrow", "impeach", "resign", "riot", "vote", "parliament", "congress"] },
-    { cat: "technology", words: ["semiconductor", "chip", "ai", "artificial intelligence", "tech", "cyber", "5g", "quantum", "software", "satellite", "space", "robot", "blockchain", "crypto"] },
-    { cat: "healthcare", words: ["pandemic", "virus", "vaccine", "outbreak", "epidemic", "disease", "drug", "pharmaceutical", "hospital", "health", "fda", "medical"] },
-    { cat: "climate", words: ["climate", "carbon", "emissions", "earthquake", "tsunami", "hurricane", "flood", "wildfire", "drought", "renewable", "solar", "environmental"] },
-    { cat: "agriculture", words: ["wheat", "grain", "crop", "famine", "food crisis", "agriculture", "corn", "soybean", "fertilizer"] },
-    { cat: "trade", words: ["shipping", "freight", "maritime", "supply chain", "logistics", "port", "trade deal", "import", "export", "wto"] },
-    { cat: "threat", words: ["nuclear", "threat", "crisis", "emergency", "escalation", "warning", "terror", "hostage", "assassination", "coup"] },
-  ];
-  let bestCat = "general";
-  let bestScore = 0;
-  for (const { cat, words } of rules) {
-    const score = words.filter((w) => text.includes(w)).length;
-    if (score > bestScore) { bestScore = score; bestCat = cat; }
-  }
-  return bestCat;
-}
 
 export default function Timeline() {
   const { events, isLoading } = useEvents();
