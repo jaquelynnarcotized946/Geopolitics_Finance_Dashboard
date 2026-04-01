@@ -3,8 +3,8 @@ import { prisma } from "../../lib/prisma";
 import { ingestEvents } from "../../lib/ingest/events";
 import { applyPublicReadGuard } from "../../lib/publicApi";
 
-// Allow up to 60s on Vercel Hobby (max for hobby plan)
-export const config = { maxDuration: 60 };
+// Allow up to 300s (Vercel caps to plan max: 60s Hobby, 300s Pro)
+export const config = { maxDuration: 300 };
 
 const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -37,15 +37,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Check if an ingestion is already running
+    // Check if an ingestion is legitimately running (started < 5 min ago).
+    // Logs stuck in "running" for > 5 min were killed by the serverless runtime
+    // and should be cleaned up, not block future runs.
+    const STUCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
     const runningLog = await prisma.ingestionLog.findFirst({
       where: { status: "running" },
       orderBy: { startedAt: "desc" },
     });
 
     if (runningLog) {
-      res.status(200).json({ skipped: true, reason: "ingestion_running" });
-      return;
+      const runningAge = Date.now() - runningLog.startedAt.getTime();
+      if (runningAge < STUCK_THRESHOLD_MS) {
+        // Legitimately running — don't start another
+        res.status(200).json({ skipped: true, reason: "ingestion_running" });
+        return;
+      }
+      // Stuck "running" log — mark it as failed so it doesn't block us
+      await prisma.ingestionLog.update({
+        where: { id: runningLog.id },
+        data: {
+          status: "failed",
+          error: "Timed out (killed by serverless runtime)",
+          completedAt: new Date(),
+        },
+      });
     }
 
     // Check if data is actually stale

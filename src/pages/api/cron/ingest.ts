@@ -2,7 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { isAuthorizedCronRequest } from "../../../lib/cronAuth";
 import { ingestEvents } from "../../../lib/ingest/events";
 
-export const config = { maxDuration: 60 };
+// Allow up to 300s (Vercel caps to plan max: 60s Hobby, 300s Pro)
+export const config = { maxDuration: 300 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "GET" && req.method !== "POST") {
