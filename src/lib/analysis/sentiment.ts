@@ -52,25 +52,36 @@ export async function analyzeEventSentiments() {
 
   if (events.length === 0) return { analyzed: 0 };
 
-  let count = 0;
+  const updates: Array<{ id: string; score: number; label: SentimentResult["label"] }> = [];
   for (const event of events) {
     try {
       const text = `${event.title}. ${event.summary}`;
       const result = await analyzeSentiment(text);
-
-      await prisma.event.update({
-        where: { id: event.id },
-        data: {
-          sentimentScore: result.score,
-          sentimentLabel: result.label,
-        },
+      updates.push({
+        id: event.id,
+        score: result.score,
+        label: result.label,
       });
-      count++;
     } catch (err) {
       console.warn(`[Sentiment] Failed for event ${event.id}:`, (err as Error).message);
     }
   }
 
-  console.log(`[Sentiment] Analyzed ${count} events`);
-  return { analyzed: count };
+  for (let index = 0; index < updates.length; index += 50) {
+    const chunk = updates.slice(index, index + 50);
+    await prisma.$transaction(
+      chunk.map((update) =>
+        prisma.event.update({
+          where: { id: update.id },
+          data: {
+            sentimentScore: update.score,
+            sentimentLabel: update.label,
+          },
+        })
+      )
+    );
+  }
+
+  console.log(`[Sentiment] Analyzed ${updates.length} events`);
+  return { analyzed: updates.length };
 }

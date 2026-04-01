@@ -153,49 +153,57 @@ export async function fetchRssEvents(): Promise<RssEvent[]> {
   const feeds = loadFeeds();
   if (feeds.length === 0) return [];
 
-  const results: RssEvent[] = [];
+  const settled = await Promise.allSettled(
+    feeds.map(async (feed) => {
+      const startedAt = Date.now();
 
-  for (const feed of feeds) {
-    const startedAt = Date.now();
-    try {
-      const feedData = await parser.parseURL(feed.url);
-      const sourceName = feed.name || feedData.title || "RSS";
+      try {
+        const feedData = await parser.parseURL(feed.url);
+        const sourceName = feed.name || feedData.title || "RSS";
 
-      for (const item of feedData.items.slice(0, 20)) {
-        if (!item.link || !item.title) continue;
-        const publishedAt = item.isoDate ? new Date(item.isoDate) : new Date();
-        const summary = (item.contentSnippet || item.content || "").slice(0, 400);
-        const detected = detectCountry(item.title, summary, feed.region || "Global", feed.countryCode);
-        results.push({
-          title: item.title,
-          summary,
+        const events = feedData.items
+          .slice(0, 20)
+          .flatMap((item) => {
+            if (!item.link || !item.title) return [];
+
+            const publishedAt = item.isoDate ? new Date(item.isoDate) : new Date();
+            const summary = (item.contentSnippet || item.content || "").slice(0, 400);
+            const detected = detectCountry(item.title, summary, feed.region || "Global", feed.countryCode);
+
+            return [{
+              title: item.title,
+              summary,
+              source: sourceName,
+              url: item.link,
+              feedGuid: item.guid || item.id,
+              publishedAt,
+              region: detected.region,
+              countryCode: detected.countryCode,
+              severity: estimateSeverity(item.title, summary, sourceName),
+            }];
+          });
+
+        await recordSourceHealth({
           source: sourceName,
-          url: item.link,
-          feedGuid: item.guid || item.id,
-          publishedAt,
-          region: detected.region,
-          countryCode: detected.countryCode,
-          severity: estimateSeverity(item.title, summary, sourceName),
+          feedUrl: feed.url,
+          status: "ok",
+          latencyMs: Date.now() - startedAt,
         });
+
+        return events;
+      } catch (err) {
+        await recordSourceHealth({
+          source: feed.name,
+          feedUrl: feed.url,
+          status: "failed",
+          latencyMs: Date.now() - startedAt,
+          error: (err as Error).message,
+        });
+        console.warn(`[RSS] Failed to fetch ${feed.name}: ${(err as Error).message}`);
+        return [] as RssEvent[];
       }
+    })
+  );
 
-      await recordSourceHealth({
-        source: sourceName,
-        feedUrl: feed.url,
-        status: "ok",
-        latencyMs: Date.now() - startedAt,
-      });
-    } catch (err) {
-      await recordSourceHealth({
-        source: feed.name,
-        feedUrl: feed.url,
-        status: "failed",
-        latencyMs: Date.now() - startedAt,
-        error: (err as Error).message,
-      });
-      console.warn(`[RSS] Failed to fetch ${feed.name}: ${(err as Error).message}`);
-    }
-  }
-
-  return results;
+  return settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
 }

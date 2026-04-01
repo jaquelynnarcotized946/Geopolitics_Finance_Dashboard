@@ -18,6 +18,40 @@ import { stringifyStringArray } from "../json";
 
 type RawEvent = Awaited<ReturnType<typeof fetchRssEvents>>[number] | Awaited<ReturnType<typeof fetchGdeltEvents>>[number];
 
+type NormalizedEvent = RawEvent & {
+  canonicalUrl: string;
+  urlHash: string;
+  category: string;
+  duplicateClusterId: string;
+  tags: string[];
+  whyThisMatters: string | null;
+  relevanceScore: number;
+  sourceReliability: number;
+};
+
+type PersistedEventSummary = {
+  id: string;
+  category: string;
+  region: string;
+  severity: number;
+  publishedAt: Date;
+  duplicateClusterId: string | null;
+  url: string;
+  title: string;
+  summary: string;
+  sourceReliability: number;
+};
+
+const BATCH_SIZE = 100;
+
+function chunkArray<T>(items: T[], size = BATCH_SIZE) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
 export async function ingestEvents() {
   const startedAt = new Date();
   let totalEvents = 0;
@@ -69,7 +103,7 @@ export async function ingestEvents() {
       }
     }
 
-    const normalized = Array.from(deduped.values()).map((event) => {
+    const normalized: NormalizedEvent[] = Array.from(deduped.values()).map((event) => {
       const canonicalUrl = canonicalizeUrl(event.url);
       const category = categorizeEvent(event.title, event.summary);
       const duplicateClusterId = buildDuplicateClusterId(event.title, event.region, category);
@@ -101,31 +135,32 @@ export async function ingestEvents() {
 
     await updateIngestionJob(job.id, { stage: "persist", status: "running" });
 
-    const persistedEvents: Array<{ id: string; category: string; region: string; severity: number; publishedAt: Date; duplicateClusterId: string | null; url: string }> = [];
-    for (const event of normalized) {
-      try {
-        const saved = await prisma.event.upsert({
-          where: { url: event.url },
-          update: {
-            title: event.title,
-            summary: event.summary,
-            source: event.source,
-            region: event.region,
-            countryCode: event.countryCode,
-            severity: event.severity,
-            publishedAt: event.publishedAt,
-            canonicalUrl: event.canonicalUrl,
-            urlHash: event.urlHash,
-            feedGuid: event.feedGuid,
-            fetchedAt: new Date(),
-            duplicateClusterId: event.duplicateClusterId,
-            category: event.category,
-            tags: stringifyStringArray(event.tags),
-            whyThisMatters: event.whyThisMatters,
-            sourceReliability: event.sourceReliability,
-            relevanceScore: event.relevanceScore,
-          },
-          create: {
+    const fetchedAt = new Date();
+    const urls = normalized.map((event) => event.url);
+    const existingEvents = (
+      await Promise.all(
+        chunkArray(urls).map((chunk) =>
+          prisma.event.findMany({
+            where: { url: { in: chunk } },
+            select: { id: true, url: true },
+          })
+        )
+      )
+    ).flat();
+
+    const existingEventByUrl = new Map(existingEvents.map((event) => [event.url, event.id]));
+    const newEvents = normalized.filter((event) => !existingEventByUrl.has(event.url));
+    const updates = normalized
+      .map((event) => ({
+        event,
+        existingId: existingEventByUrl.get(event.url),
+      }))
+      .filter((entry): entry is { event: NormalizedEvent; existingId: string } => Boolean(entry.existingId));
+
+    await Promise.all(
+      chunkArray(newEvents).map((chunk) =>
+        prisma.event.createMany({
+          data: chunk.map((event) => ({
             title: event.title,
             summary: event.summary,
             source: event.source,
@@ -137,34 +172,78 @@ export async function ingestEvents() {
             canonicalUrl: event.canonicalUrl,
             urlHash: event.urlHash,
             feedGuid: event.feedGuid,
-            fetchedAt: new Date(),
+            fetchedAt,
             duplicateClusterId: event.duplicateClusterId,
             category: event.category,
             tags: stringifyStringArray(event.tags),
             whyThisMatters: event.whyThisMatters,
             sourceReliability: event.sourceReliability,
             relevanceScore: event.relevanceScore,
-          },
-        });
-        totalEvents++;
-        persistedEvents.push({
-          id: saved.id,
-          category: saved.category,
-          region: saved.region,
-          severity: saved.severity,
-          publishedAt: saved.publishedAt,
-          duplicateClusterId: saved.duplicateClusterId,
-          url: saved.url,
-        });
-      } catch (err) {
-        // Skip duplicates or malformed entries silently
-      }
-    }
+          })),
+          skipDuplicates: true,
+        })
+      )
+    );
+
+    await Promise.all(
+      chunkArray(updates, 50).map((chunk) =>
+        prisma.$transaction(
+          chunk.map(({ event, existingId }) =>
+            prisma.event.update({
+              where: { id: existingId },
+              data: {
+                title: event.title,
+                summary: event.summary,
+                source: event.source,
+                region: event.region,
+                countryCode: event.countryCode,
+                severity: event.severity,
+                publishedAt: event.publishedAt,
+                canonicalUrl: event.canonicalUrl,
+                urlHash: event.urlHash,
+                feedGuid: event.feedGuid,
+                fetchedAt,
+                duplicateClusterId: event.duplicateClusterId,
+                category: event.category,
+                tags: stringifyStringArray(event.tags),
+                whyThisMatters: event.whyThisMatters,
+                sourceReliability: event.sourceReliability,
+                relevanceScore: event.relevanceScore,
+              },
+            })
+          )
+        )
+      )
+    );
+
+    const persistedEvents: PersistedEventSummary[] = (
+      await Promise.all(
+        chunkArray(urls).map((chunk) =>
+          prisma.event.findMany({
+            where: { url: { in: chunk } },
+            select: {
+              id: true,
+              category: true,
+              region: true,
+              severity: true,
+              publishedAt: true,
+              duplicateClusterId: true,
+              url: true,
+              title: true,
+              summary: true,
+              sourceReliability: true,
+            },
+          })
+        )
+      )
+    ).flat();
+    totalEvents = persistedEvents.length;
 
     const clusterIds = Array.from(
       new Set(persistedEvents.map((event) => event.duplicateClusterId).filter((value): value is string => Boolean(value)))
     );
 
+    let countMap = new Map<string, number>();
     if (clusterIds.length > 0) {
       const clusterCounts = await prisma.event.groupBy({
         by: ["duplicateClusterId"],
@@ -178,46 +257,50 @@ export async function ingestEvents() {
         },
       });
 
-      const countMap = new Map(
+      countMap = new Map(
         clusterCounts.map((item) => [item.duplicateClusterId || "", item._count._all])
       );
-
-      for (const event of persistedEvents) {
-        const supportCount = countMap.get(event.duplicateClusterId || "") || 1;
-        const refreshed = await prisma.event.findUnique({
-          where: { id: event.id },
-          include: {
-            correlations: {
-              select: {
-                symbol: true,
-              },
-            },
-          },
-        });
-
-        const intelligence = summarizeEventIntelligence({
-          title: refreshed?.title || "",
-          summary: refreshed?.summary || "",
-          region: event.region,
-          category: event.category,
-          severity: event.severity,
-          publishedAt: event.publishedAt,
-          supportingSourcesCount: supportCount,
-          sourceReliability: refreshed?.sourceReliability ?? undefined,
-          symbols: refreshed?.correlations.map((corr) => corr.symbol) ?? [],
-        });
-
-        await prisma.event.update({
-          where: { id: event.id },
-          data: {
-            supportingSourcesCount: supportCount,
-            isPremiumInsight: supportCount >= 3 || event.severity >= 8,
-            whyThisMatters: intelligence.whyThisMatters,
-            relevanceScore: intelligence.relevanceScore,
-          },
-        });
-      }
     }
+
+    const eventUpdates = persistedEvents.map((event) => {
+      const supportCount = countMap.get(event.duplicateClusterId || "") || 1;
+      const intelligence = summarizeEventIntelligence({
+        title: event.title,
+        summary: event.summary,
+        region: event.region,
+        category: event.category,
+        severity: event.severity,
+        publishedAt: event.publishedAt,
+        supportingSourcesCount: supportCount,
+        sourceReliability: event.sourceReliability,
+      });
+
+      return {
+        id: event.id,
+        supportingSourcesCount: supportCount,
+        isPremiumInsight: supportCount >= 3 || event.severity >= 8,
+        whyThisMatters: intelligence.whyThisMatters,
+        relevanceScore: intelligence.relevanceScore,
+      };
+    });
+
+    await Promise.all(
+      chunkArray(eventUpdates, 50).map((chunk) =>
+        prisma.$transaction(
+          chunk.map((event) =>
+            prisma.event.update({
+              where: { id: event.id },
+              data: {
+                supportingSourcesCount: event.supportingSourcesCount,
+                isPremiumInsight: event.isPremiumInsight,
+                whyThisMatters: event.whyThisMatters,
+                relevanceScore: event.relevanceScore,
+              },
+            })
+          )
+        )
+      )
+    );
 
     await updateIngestionJob(job.id, { stage: "correlate", status: "running", itemsProcessed: totalEvents });
 

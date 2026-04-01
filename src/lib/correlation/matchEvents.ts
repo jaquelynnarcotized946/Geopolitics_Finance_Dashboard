@@ -221,14 +221,21 @@ export async function generateCorrelations() {
   const recentEvents = await prisma.event.findMany({
     where: {
       publishedAt: { gte: new Date(Date.now() - 1000 * 60 * 60 * 48) }, // 48h window
+      correlations: {
+        none: {},
+      },
     },
-    include: { correlations: true },
+    select: {
+      id: true,
+      title: true,
+      summary: true,
+    },
   });
 
   // Collect all symbols we need quotes for
   const symbolsNeeded = new Set<string>();
   const eventMatches: Array<{
-    event: typeof recentEvents[0];
+    eventId: string;
     entry: CorrelationEntry;
     matchStrength: number;
   }> = [];
@@ -236,15 +243,12 @@ export async function generateCorrelations() {
   for (const event of recentEvents) {
     const text = `${event.title} ${event.summary}`.toLowerCase();
 
-    // Skip events that already have correlations
-    if (event.correlations.length > 0) continue;
-
     for (const entry of CORRELATION_MAP) {
       if (!matchesEntry(text, entry)) continue;
       const count = matchCount(text, entry);
       const strength = Math.min(1, entry.baseImpact + (count - 1) * 0.1);
       symbolsNeeded.add(entry.symbol);
-      eventMatches.push({ event, entry, matchStrength: strength });
+      eventMatches.push({ eventId: event.id, entry, matchStrength: strength });
     }
   }
 
@@ -269,8 +273,27 @@ export async function generateCorrelations() {
 
   // Create correlations with direction and magnitude
   const seen = new Set<string>();
-  for (const { event, entry, matchStrength } of eventMatches) {
-    const key = `${event.id}:${entry.symbol}`;
+  const correlationsToCreate: Array<{
+    eventId: string;
+    symbol: string;
+    impactScore: number;
+    impactDirection: string;
+    impactMagnitude: number;
+    window: string;
+    category: string;
+  }> = [];
+  const snapshotsBySymbol = new Map<string, {
+    symbol: string;
+    price: number;
+    changePct: number;
+    assetClass: string;
+    timestamp: Date;
+    provider: string;
+    freshness: string;
+  }>();
+
+  for (const { eventId, entry, matchStrength } of eventMatches) {
+    const key = `${eventId}:${entry.symbol}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
@@ -280,33 +303,71 @@ export async function generateCorrelations() {
       : entry.direction;
     const impactMagnitude = Math.abs(quote?.changePct ?? 0);
 
-    await prisma.correlation.create({
-      data: {
-        eventId: event.id,
-        symbol: entry.symbol,
-        impactScore: matchStrength,
-        impactDirection,
-        impactMagnitude,
-        window: "24h",
-        category: entry.category,
-      },
+    correlationsToCreate.push({
+      eventId,
+      symbol: entry.symbol,
+      impactScore: matchStrength,
+      impactDirection,
+      impactMagnitude,
+      window: "24h",
+      category: entry.category,
     });
 
-    // Also save market snapshot
-    if (quote && quote.price > 0) {
-      await prisma.marketSnapshot.create({
-        data: {
-          symbol: entry.symbol,
-          price: quote.price,
-          changePct: quote.changePct,
-          assetClass: entry.category,
-          timestamp: new Date(quote.timestamp),
-          provider: quote.provider,
-          freshness: quote.freshness,
-        },
+    if (quote && quote.price > 0 && !snapshotsBySymbol.has(entry.symbol)) {
+      snapshotsBySymbol.set(entry.symbol, {
+        symbol: entry.symbol,
+        price: quote.price,
+        changePct: quote.changePct,
+        assetClass: entry.category,
+        timestamp: new Date(quote.timestamp),
+        provider: quote.provider,
+        freshness: quote.freshness,
       });
     }
   }
 
-  return { correlationsCreated: eventMatches.length };
+  const correlationChunks: typeof correlationsToCreate[] = [];
+  for (let index = 0; index < correlationsToCreate.length; index += 250) {
+    correlationChunks.push(correlationsToCreate.slice(index, index + 250));
+  }
+
+  await Promise.all(
+    correlationChunks.map((chunk) =>
+      prisma.correlation.createMany({
+        data: chunk.map((correlation) => ({
+          eventId: correlation.eventId,
+          symbol: correlation.symbol,
+          impactScore: correlation.impactScore,
+          impactDirection: correlation.impactDirection,
+          impactMagnitude: correlation.impactMagnitude,
+          window: correlation.window,
+          category: correlation.category,
+        })),
+      })
+    )
+  );
+
+  const snapshots = Array.from(snapshotsBySymbol.values());
+  const snapshotChunks: typeof snapshots[] = [];
+  for (let index = 0; index < snapshots.length; index += 100) {
+    snapshotChunks.push(snapshots.slice(index, index + 100));
+  }
+
+  await Promise.all(
+    snapshotChunks.map((chunk) =>
+      prisma.marketSnapshot.createMany({
+        data: chunk.map((snapshot) => ({
+          symbol: snapshot.symbol,
+          price: snapshot.price,
+          changePct: snapshot.changePct,
+          assetClass: snapshot.assetClass,
+          timestamp: snapshot.timestamp,
+          provider: snapshot.provider,
+          freshness: snapshot.freshness,
+        })),
+      })
+    )
+  );
+
+  return { correlationsCreated: correlationsToCreate.length };
 }

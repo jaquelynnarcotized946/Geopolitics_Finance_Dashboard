@@ -30,6 +30,8 @@ function normalizeLastJob(
 ) {
   if (!lastLog && !lastJob) return null;
 
+  const staleRunningThresholdMs = 15 * 60 * 1000;
+
   if (!lastJob) {
     return {
       id: `log:${lastLog!.id}`,
@@ -44,7 +46,15 @@ function normalizeLastJob(
     };
   }
 
-  if (lastLog && lastJob.startedAt < lastLog.startedAt) {
+  const staleRunningJob =
+    lastJob.status === "running" &&
+    !lastJob.completedAt &&
+    (
+      (lastLog?.completedAt !== null && lastLog?.completedAt !== undefined && lastLog.completedAt >= lastJob.startedAt) ||
+      Date.now() - lastJob.startedAt.getTime() > staleRunningThresholdMs
+    );
+
+  if (lastLog && (lastJob.startedAt < lastLog.startedAt || staleRunningJob)) {
     return {
       id: `log:${lastLog.id}`,
       kind: "ingestion",
