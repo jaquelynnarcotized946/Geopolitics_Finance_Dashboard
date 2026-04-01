@@ -13,6 +13,12 @@ export type GdeltEvent = {
 };
 
 const DEFAULT_QUERY = "conflict OR sanctions OR election OR protest";
+const REQUEST_TIMEOUT_MS = 20_000;
+const MAX_ATTEMPTS = 3;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export async function fetchGdeltEvents(): Promise<GdeltEvent[]> {
   const startedAt = Date.now();
@@ -22,17 +28,44 @@ export async function fetchGdeltEvents(): Promise<GdeltEvent[]> {
     query,
   )}&mode=ArtList&maxrecords=20&format=json&sort=DateDesc&timespan=1d`;
 
-  const response = await fetch(url);
-  if (!response.ok) {
+  let response: Response | null = null;
+  let lastError: string | null = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      response = await fetch(url, {
+        headers: {
+          "user-agent": "GeoPulse/1.0 (+https://geopolitics-finance-dashboard.vercel.app)",
+        },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      break;
+    } catch (error) {
+      lastError = (error as Error).message;
+      console.warn(`[GDELT] Attempt ${attempt}/${MAX_ATTEMPTS} failed: ${lastError}`);
+
+      if (attempt < MAX_ATTEMPTS) {
+        await sleep(attempt * 1000);
+      }
+    }
+  }
+
+  if (!response || !response.ok) {
     await recordSourceHealth({
       source: "GDELT",
       feedUrl: url,
       status: "failed",
       latencyMs: Date.now() - startedAt,
-      error: `HTTP ${response.status}`,
+      error: lastError || "GDELT request failed",
     });
     return [];
   }
+
   const payload = (await response.json()) as {
     articles?: Array<{
       title?: string;
