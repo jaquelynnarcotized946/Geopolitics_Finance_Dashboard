@@ -114,9 +114,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   maybeAutoSync();
 
   try {
-    const [lastLog, rawLastJob, eventCount, correlationCount, patternCount, recentEvents, degradedSources] = await Promise.all([
+    const [lastLog, lastCompletedLog, rawLastJob, eventCount, correlationCount, patternCount, recentEvents, degradedSources] = await Promise.all([
       prisma.ingestionLog.findFirst({
         orderBy: { startedAt: "desc" },
+      }),
+      // Also fetch the most recent *completed* ingestion so sync time is never "never"
+      // when a new run is still in progress.
+      prisma.ingestionLog.findFirst({
+        where: { completedAt: { not: null } },
+        orderBy: { completedAt: "desc" },
       }),
       prisma.ingestionJob.findFirst({
         orderBy: { startedAt: "desc" },
@@ -138,13 +144,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const lastJob = normalizeLastJob(lastLog, rawLastJob);
 
+    // Use the current log's completedAt, but fall back to the most recent
+    // *completed* ingestion so "Synced" never shows "never" while a run is in progress.
+    const effectiveCompletedAt = lastLog?.completedAt ?? lastCompletedLog?.completedAt ?? null;
+
     res.status(200).json({
       lastIngestion: lastLog
         ? {
             status: lastLog.status,
             eventsFound: lastLog.eventsFound,
             startedAt: lastLog.startedAt,
-            completedAt: lastLog.completedAt,
+            completedAt: effectiveCompletedAt,
             error: lastLog.error,
           }
         : null,

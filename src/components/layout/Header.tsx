@@ -32,11 +32,7 @@ export default function Header({ onOpenNavigation }: { onOpenNavigation?: () => 
               <h1 className="text-base font-bold text-white">
                 GeoPulse <span className="text-gradient">Intelligence</span>
               </h1>
-              {entitlements?.premiumActive && (
-                <span className="inline-flex items-center rounded-md bg-emerald/10 px-2 py-1 text-xs font-medium text-emerald">
-                  Premium
-                </span>
-              )}
+
             </div>
             <p className="text-[11px] text-zinc-500">
               Geopolitical signals linked to market movements
