@@ -24,7 +24,7 @@ export default function Header({ onOpenNavigation }: { onOpenNavigation?: () => 
   };
 
   return (
-    <header className="rounded-xl border border-white/[0.06] bg-[#0A0A0A] px-4 py-3 sm:px-5">
+    <header className="rounded-xl border border-white/[0.06] bg-[#0A0A0A] px-4 py-3 sm:px-5" data-testid="header">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start justify-between gap-3">
           <div>
