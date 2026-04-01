@@ -8,6 +8,7 @@ export default function Header({ onOpenNavigation }: { onOpenNavigation?: () => 
   const { status } = useStatus();
   const { entitlements } = useEntitlements();
   const [signingOut, setSigningOut] = useState(false);
+  const isAdmin = Boolean(entitlements?.isAdmin);
 
   const lastSync = status?.lastIngestion?.completedAt
     ? relativeTime(status.lastIngestion.completedAt)
@@ -56,10 +57,18 @@ export default function Header({ onOpenNavigation }: { onOpenNavigation?: () => 
             {entitlements?.accessLabel || "Free"}
           </span>
           <span className="chip">
-            <span className={`h-1.5 w-1.5 rounded-full ${
-              status?.lastIngestion?.status === "success" ? "bg-emerald" : "bg-zinc-500"
-            }`} />
-            Synced {lastSync}
+            {isAdmin ? (
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                status?.lastIngestion?.status === "success"
+                  ? "bg-emerald"
+                  : status?.lastIngestion?.status === "failed"
+                  ? "bg-red-400"
+                  : "bg-zinc-500"
+              }`} />
+            ) : (
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
+            )}
+            {isAdmin ? `Synced ${lastSync}` : `Updated ${lastSync}`}
           </span>
           <button
             className="rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] text-zinc-500 transition hover:text-zinc-300 disabled:opacity-50"

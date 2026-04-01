@@ -45,6 +45,7 @@ export default function Settings() {
   const { status, mutate: mutateStatus } = useStatus();
   const { preferences, savePreferences, isLoading: prefsLoading } = usePreferences();
   const { entitlements } = useEntitlements();
+  const isAdmin = Boolean(entitlements?.isAdmin);
 
   const [billingStatus, setBillingStatus] = useState<"idle" | "loading" | "error">("idle");
   const [digestStatus, setDigestStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
@@ -304,7 +305,7 @@ export default function Settings() {
           </SectionCard>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+        <div className={`grid gap-4 ${isAdmin ? "lg:grid-cols-[1fr_1fr]" : ""}`}>
           <SectionCard title="Product Access" subtitle="Free accounts get the full core workflow. Premium expands limits, speed, and briefing depth.">
             <div className="space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
@@ -418,24 +419,26 @@ export default function Settings() {
             </div>
           </SectionCard>
 
-          <SectionCard title="System Reliability" subtitle="Operational signals for ingestion, sources, and background jobs.">
-            <div className="space-y-2">
-              {[
-                { label: "Last ingestion", value: status?.lastIngestion?.completedAt ? relativeTime(status.lastIngestion.completedAt) : "Never" },
-                { label: "Pipeline status", value: status?.lastIngestion?.status ?? "idle" },
-                { label: "Current stage", value: status?.lastJob?.stage ?? "n/a" },
-                { label: "Total events", value: (status?.stats?.totalEvents ?? 0).toString() },
-                { label: "Correlations", value: (status?.stats?.totalCorrelations ?? 0).toString() },
-                { label: "Patterns", value: (status?.stats?.totalPatterns ?? 0).toString() },
-                { label: "Degraded sources", value: (status?.stats?.degradedSources ?? 0).toString() },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
-                  <span className="text-sm text-zinc-500">{item.label}</span>
-                  <span className="text-sm font-semibold text-white">{item.value}</span>
-                </div>
-              ))}
-            </div>
-          </SectionCard>
+          {isAdmin ? (
+            <SectionCard title="System Reliability" subtitle="Operational signals for ingestion, sources, and background jobs.">
+              <div className="space-y-2">
+                {[
+                  { label: "Last ingestion", value: status?.lastIngestion?.completedAt ? relativeTime(status.lastIngestion.completedAt) : "Never" },
+                  { label: "Pipeline status", value: status?.lastIngestion?.status ?? "idle" },
+                  { label: "Current stage", value: status?.lastJob?.stage ?? "n/a" },
+                  { label: "Total events", value: (status?.stats?.totalEvents ?? 0).toString() },
+                  { label: "Correlations", value: (status?.stats?.totalCorrelations ?? 0).toString() },
+                  { label: "Patterns", value: (status?.stats?.totalPatterns ?? 0).toString() },
+                  { label: "Degraded sources", value: (status?.stats?.degradedSources ?? 0).toString() },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                    <span className="text-sm text-zinc-500">{item.label}</span>
+                    <span className="text-sm font-semibold text-white">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          ) : null}
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">

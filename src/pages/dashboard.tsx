@@ -97,6 +97,7 @@ export default function Dashboard() {
   const { preferences, isLoading: prefsLoading } = usePreferences();
   const { savedFilters, saveFilter, removeFilter } = useSavedFilters();
   const { entitlements } = useEntitlements();
+  const isAdmin = Boolean(entitlements?.isAdmin);
 
   const [activeCategory, setActiveCategory] = useState("for-you");
   const [searchQuery, setSearchQuery] = useState("");
@@ -332,13 +333,23 @@ export default function Dashboard() {
           tone="amber"
           sparkline={[12, 15, 18, 16, 22, 25, 24]}
         />
-        <MetricCard
-          label="Source Health"
-          value={(status?.stats?.degradedSources ?? 0).toString()}
-          trend="Feeds needing attention"
-          tone="ocean"
-          sparkline={[1, 0, 1, 2, 1, 0, 1]}
-        />
+        {isAdmin ? (
+          <MetricCard
+            label="Source Health"
+            value={(status?.stats?.degradedSources ?? 0).toString()}
+            trend="Feeds needing attention"
+            tone="ocean"
+            sparkline={[1, 0, 1, 2, 1, 0, 1]}
+          />
+        ) : (
+          <MetricCard
+            label="Saved Views"
+            value={savedFilters.length.toString()}
+            trend={entitlements?.limits?.savedViews === null ? "Unlimited capacity" : `${entitlements?.limits?.savedViews ?? 3} included`}
+            tone="ocean"
+            sparkline={[0, 1, 1, 2, 2, 3, 3]}
+          />
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">

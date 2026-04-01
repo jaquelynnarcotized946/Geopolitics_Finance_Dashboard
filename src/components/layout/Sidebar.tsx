@@ -5,6 +5,7 @@ import { useEntitlements } from "../../lib/hooks/useEntitlements";
 export default function Sidebar({ onNavigate, onClose }: { onNavigate?: () => void; onClose?: () => void }) {
   const { status } = useStatus();
   const { entitlements } = useEntitlements();
+  const isAdmin = Boolean(entitlements?.isAdmin);
 
   return (
     <aside className="flex h-full flex-col gap-4 rounded-xl border border-white/[0.06] bg-[#0A0A0A] p-4">
@@ -42,24 +43,39 @@ export default function Sidebar({ onNavigate, onClose }: { onNavigate?: () => vo
       </nav>
 
       <div className="mt-auto rounded-lg border border-white/[0.05] bg-white/[0.02] p-3 text-[11px]">
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-medium text-zinc-400">System</span>
-          <span
-            className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
-              status?.lastIngestion?.status === "success"
-                ? "bg-emerald/10 text-emerald"
-                : status?.lastIngestion?.status === "failed"
-                ? "bg-red-500/10 text-red-400"
-                : "bg-amber-500/10 text-amber-400"
-            }`}
-          >
-            {status?.lastIngestion?.status === "success" ? "LIVE" : status?.lastIngestion?.status === "failed" ? "ERR" : "IDLE"}
-          </span>
-        </div>
-        <p className="text-zinc-600">{status?.stats?.totalEvents ?? 0} events | {status?.stats?.totalCorrelations ?? 0} links</p>
-        <p className="mt-1 text-zinc-600">
-          {(entitlements?.accessLabel || "Free")} plan | {status?.stats?.degradedSources ?? 0} degraded sources
-        </p>
+        {isAdmin ? (
+          <>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-medium text-zinc-400">System</span>
+              <span
+                className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                  status?.lastIngestion?.status === "success"
+                    ? "bg-emerald/10 text-emerald"
+                    : status?.lastIngestion?.status === "failed"
+                    ? "bg-red-500/10 text-red-400"
+                    : "bg-amber-500/10 text-amber-400"
+                }`}
+              >
+                {status?.lastIngestion?.status === "success" ? "LIVE" : status?.lastIngestion?.status === "failed" ? "ERR" : "IDLE"}
+              </span>
+            </div>
+            <p className="text-zinc-600">{status?.stats?.totalEvents ?? 0} events | {status?.stats?.totalCorrelations ?? 0} links</p>
+            <p className="mt-1 text-zinc-600">
+              {(entitlements?.accessLabel || "Free")} plan | {status?.stats?.degradedSources ?? 0} degraded sources
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-medium text-zinc-400">Account</span>
+              <span className="rounded bg-emerald/10 px-1.5 py-0.5 text-[9px] font-bold text-emerald">
+                ACTIVE
+              </span>
+            </div>
+            <p className="text-zinc-600">{entitlements?.accessLabel || "Free"} plan</p>
+            <p className="mt-1 text-zinc-600">Your feed syncs automatically in the background.</p>
+          </>
+        )}
       </div>
     </aside>
   );

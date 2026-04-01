@@ -40,6 +40,10 @@ type PersistedEventSummary = {
   title: string;
   summary: string;
   sourceReliability: number;
+  supportingSourcesCount: number;
+  isPremiumInsight: boolean;
+  whyThisMatters: string | null;
+  relevanceScore: number;
 };
 
 const BATCH_SIZE = 100;
@@ -50,6 +54,19 @@ function chunkArray<T>(items: T[], size = BATCH_SIZE) {
     chunks.push(items.slice(index, index + size));
   }
   return chunks;
+}
+
+async function updateEventsSequentially<T extends { id: string }>(
+  items: T[],
+  buildData: (item: T) => Record<string, unknown>
+) {
+  const sorted = [...items].sort((left, right) => left.id.localeCompare(right.id));
+  for (const item of sorted) {
+    await prisma.event.update({
+      where: { id: item.id },
+      data: buildData(item),
+    });
+  }
 }
 
 export async function ingestEvents() {
@@ -150,12 +167,7 @@ export async function ingestEvents() {
 
     const existingEventByUrl = new Map(existingEvents.map((event) => [event.url, event.id]));
     const newEvents = normalized.filter((event) => !existingEventByUrl.has(event.url));
-    const updates = normalized
-      .map((event) => ({
-        event,
-        existingId: existingEventByUrl.get(event.url),
-      }))
-      .filter((entry): entry is { event: NormalizedEvent; existingId: string } => Boolean(entry.existingId));
+    const newEventUrls = new Set(newEvents.map((event) => event.url));
 
     await Promise.all(
       chunkArray(newEvents).map((chunk) =>
@@ -185,37 +197,6 @@ export async function ingestEvents() {
       )
     );
 
-    await Promise.all(
-      chunkArray(updates, 50).map((chunk) =>
-        prisma.$transaction(
-          chunk.map(({ event, existingId }) =>
-            prisma.event.update({
-              where: { id: existingId },
-              data: {
-                title: event.title,
-                summary: event.summary,
-                source: event.source,
-                region: event.region,
-                countryCode: event.countryCode,
-                severity: event.severity,
-                publishedAt: event.publishedAt,
-                canonicalUrl: event.canonicalUrl,
-                urlHash: event.urlHash,
-                feedGuid: event.feedGuid,
-                fetchedAt,
-                duplicateClusterId: event.duplicateClusterId,
-                category: event.category,
-                tags: stringifyStringArray(event.tags),
-                whyThisMatters: event.whyThisMatters,
-                sourceReliability: event.sourceReliability,
-                relevanceScore: event.relevanceScore,
-              },
-            })
-          )
-        )
-      )
-    );
-
     const persistedEvents: PersistedEventSummary[] = (
       await Promise.all(
         chunkArray(urls).map((chunk) =>
@@ -232,6 +213,10 @@ export async function ingestEvents() {
               title: true,
               summary: true,
               sourceReliability: true,
+              supportingSourcesCount: true,
+              isPremiumInsight: true,
+              whyThisMatters: true,
+              relevanceScore: true,
             },
           })
         )
@@ -262,7 +247,9 @@ export async function ingestEvents() {
       );
     }
 
-    const eventUpdates = persistedEvents.map((event) => {
+    const eventUpdates = persistedEvents
+      .filter((event) => newEventUrls.has(event.url))
+      .map((event) => {
       const supportCount = countMap.get(event.duplicateClusterId || "") || 1;
       const intelligence = summarizeEventIntelligence({
         title: event.title,
@@ -275,32 +262,29 @@ export async function ingestEvents() {
         sourceReliability: event.sourceReliability,
       });
 
-      return {
+      const nextUpdate = {
         id: event.id,
         supportingSourcesCount: supportCount,
         isPremiumInsight: supportCount >= 3 || event.severity >= 8,
         whyThisMatters: intelligence.whyThisMatters,
         relevanceScore: intelligence.relevanceScore,
       };
-    });
 
-    await Promise.all(
-      chunkArray(eventUpdates, 50).map((chunk) =>
-        prisma.$transaction(
-          chunk.map((event) =>
-            prisma.event.update({
-              where: { id: event.id },
-              data: {
-                supportingSourcesCount: event.supportingSourcesCount,
-                isPremiumInsight: event.isPremiumInsight,
-                whyThisMatters: event.whyThisMatters,
-                relevanceScore: event.relevanceScore,
-              },
-            })
-          )
-        )
-      )
-    );
+      const hasChanged =
+        nextUpdate.supportingSourcesCount !== event.supportingSourcesCount ||
+        nextUpdate.isPremiumInsight !== event.isPremiumInsight ||
+        nextUpdate.whyThisMatters !== event.whyThisMatters ||
+        Math.abs(nextUpdate.relevanceScore - event.relevanceScore) > 0.001;
+
+      return hasChanged ? nextUpdate : null;
+    }).filter((event): event is NonNullable<typeof event> => Boolean(event));
+
+    await updateEventsSequentially(eventUpdates, (event) => ({
+      supportingSourcesCount: event.supportingSourcesCount,
+      isPremiumInsight: event.isPremiumInsight,
+      whyThisMatters: event.whyThisMatters,
+      relevanceScore: event.relevanceScore,
+    }));
 
     await updateIngestionJob(job.id, { stage: "correlate", status: "running", itemsProcessed: totalEvents });
 

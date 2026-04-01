@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { ensureDefaultEntitlements, getEntitlementSnapshot } from "../../../lib/entitlements";
 import { requireApiUser } from "../../../lib/serverAuth";
 import { prisma } from "../../../lib/prisma";
+import { isAdminEmail } from "../../../lib/admin";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const currentUser = await requireApiUser(req, res);
@@ -26,5 +27,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ...snapshot,
     trialEnd: subscription?.trialEnd,
     registeredUsers,
+    isAdmin: isAdminEmail(user.email),
   });
 }
