@@ -9,7 +9,7 @@ if (process.env.VERCEL !== "1") {
   startScheduler();
 }
 
-const AUTO_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const AUTO_SYNC_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 
 /** Fire-and-forget: trigger ingestion if the last sync is stale (>2 hours). */
 async function maybeAutoSync() {

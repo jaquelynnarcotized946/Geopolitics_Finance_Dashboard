@@ -330,20 +330,26 @@ export default function Settings() {
                 <p className="mt-1 text-[11px] text-zinc-500">
                   Premium is priced at $8/month or $79/year. The public site stays previewable without an account, while free accounts keep the full core workflow.
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button onClick={() => handleCheckout("monthly")} className="btn-primary">
-                    {billingStatus === "loading" ? "Loading..." : "Start monthly checkout"}
-                  </button>
-                  <button onClick={() => handleCheckout("yearly")} className="ghost-chip hover:bg-white/[0.06]">
-                    Yearly checkout
-                  </button>
-                  <button onClick={handlePortal} className="ghost-chip hover:bg-white/[0.06]">
-                    Billing portal
-                  </button>
-                </div>
-                {billingStatus === "error" && (
+                {entitlements?.billingEnabled ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button onClick={() => handleCheckout("monthly")} className="btn-primary">
+                      {billingStatus === "loading" ? "Loading..." : "Start monthly checkout"}
+                    </button>
+                    <button onClick={() => handleCheckout("yearly")} className="ghost-chip hover:bg-white/[0.06]">
+                      Yearly checkout
+                    </button>
+                    <button onClick={handlePortal} className="ghost-chip hover:bg-white/[0.06]">
+                      Billing portal
+                    </button>
+                  </div>
+                ) : (
+                  <p className="mt-3 text-[11px] text-zinc-600">
+                    Premium checkout will be available once billing is enabled.
+                  </p>
+                )}
+                {billingStatus === "error" && entitlements?.billingEnabled && (
                   <p className="mt-2 text-[11px] text-red-400">
-                    Billing is not configured yet in this environment. Add Stripe env vars before turning it on.
+                    Something went wrong starting checkout. Please try again.
                   </p>
                 )}
               </div>
