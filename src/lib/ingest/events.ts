@@ -3,7 +3,6 @@ import { fetchGdeltEvents } from "../sources/gdelt";
 import { fetchRssEvents } from "../sources/rss";
 import { generateCorrelations } from "../correlation/matchEvents";
 import { aggregatePatterns } from "../correlation/patterns";
-import { analyzeEventSentiments } from "../analysis/sentiment";
 import {
   buildDuplicateClusterId,
   canonicalizeUrl,
@@ -303,12 +302,6 @@ export async function ingestEvents() {
     }
 
     await updateIngestionJob(job.id, { stage: "sentiment", status: "running", itemsProcessed: totalEvents });
-
-    try {
-      await analyzeEventSentiments();
-    } catch (err) {
-      errors.push(`Sentiment: ${(err as Error).message}`);
-    }
 
     await updateIngestionJob(job.id, {
       stage: "digest-prep",
