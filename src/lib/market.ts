@@ -20,37 +20,37 @@ async function fetchTwelveDataQuotes(symbols: string[]): Promise<MarketQuote[]> 
     batches.push(symbols.slice(index, index + 8));
   }
 
-  const quotes: MarketQuote[] = [];
+  const quoteGroups = await Promise.all(
+    batches.map(async (batch) => {
+      const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(batch.join(","))}&apikey=${apiKey}`;
+      const response = await fetch(url);
+      if (!response.ok) return [] as MarketQuote[];
 
-  for (const batch of batches) {
-    const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(batch.join(","))}&apikey=${apiKey}`;
-    const response = await fetch(url);
-    if (!response.ok) continue;
+      const payload = (await response.json()) as Record<string, {
+        symbol?: string;
+        close?: string;
+        percent_change?: string;
+        currency?: string;
+        datetime?: string;
+      }>;
 
-    const payload = (await response.json()) as Record<string, {
-      symbol?: string;
-      close?: string;
-      percent_change?: string;
-      currency?: string;
-      datetime?: string;
-    }>;
+      return Object.entries(payload).flatMap(([symbol, value]) => {
+        if (!value || typeof value !== "object" || !value.close) return [];
 
-    for (const [symbol, value] of Object.entries(payload)) {
-      if (!value || typeof value !== "object" || !value.close) continue;
-
-      quotes.push({
-        symbol,
-        price: Number(value.close),
-        changePct: Number(value.percent_change || 0),
-        currency: value.currency || "USD",
-        provider: "twelvedata",
-        freshness: "delayed",
-        timestamp: value.datetime || new Date().toISOString(),
+        return [{
+          symbol,
+          price: Number(value.close),
+          changePct: Number(value.percent_change || 0),
+          currency: value.currency || "USD",
+          provider: "twelvedata" as const,
+          freshness: "delayed" as const,
+          timestamp: value.datetime || new Date().toISOString(),
+        }];
       });
-    }
-  }
+    })
+  );
 
-  return quotes;
+  return quoteGroups.flat();
 }
 
 async function readLatestSnapshots(symbols: string[]): Promise<MarketQuote[]> {

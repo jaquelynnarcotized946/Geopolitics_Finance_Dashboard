@@ -42,10 +42,10 @@ export default function Header({
             </div>
             <div>
               <h1 className="text-lg font-semibold text-white sm:text-xl">
-                Dashboard
+                Live Desk
               </h1>
               <p className="text-sm text-zinc-500">
-                Track the top region, validate signal integrity, and move into research fast.
+                Follow the live story stream, inspect affected assets, and jump into event or stock research fast.
               </p>
             </div>
           </div>

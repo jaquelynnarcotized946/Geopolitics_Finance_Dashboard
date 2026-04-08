@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "../../../lib/prisma";
+import { summarizeEventIntelligence } from "../../../lib/intelligence";
+import { buildEventReliability, matchSourceHealth, summarizeSourceHealth } from "../../../lib/reliability";
 import { applyPublicReadGuard, sendPublicApiError } from "../../../lib/publicApi";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -29,11 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Get all correlations for this symbol, including the event data
+    const normalizedSymbol = symbol.toUpperCase();
     const correlations = await prisma.correlation.findMany({
-      where: { symbol: symbol.toUpperCase() },
+      where: { symbol: normalizedSymbol },
       orderBy: { event: { publishedAt: "desc" } },
-      take: 50,
+      take: 30,
       include: {
         event: {
           select: {
@@ -46,18 +48,92 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             publishedAt: true,
             severity: true,
             url: true,
+            category: true,
+            supportingSourcesCount: true,
+            sourceReliability: true,
           },
         },
       },
     });
 
-    // Get patterns for this symbol
     const patterns = await prisma.pattern.findMany({
-      where: { symbol: symbol.toUpperCase() },
+      where: { symbol: normalizedSymbol },
       orderBy: { confidence: "desc" },
     });
 
-    res.status(200).json({ symbol: symbol.toUpperCase(), correlations, patterns });
+    const sourceHealthRows = await prisma.sourceHealth.findMany({
+      where: {
+        source: {
+          in: Array.from(new Set(correlations.map((correlation) => correlation.event.source))),
+        },
+      },
+      select: {
+        source: true,
+        feedUrl: true,
+        status: true,
+        lastFetchedAt: true,
+        lastSucceededAt: true,
+        lastError: true,
+        lastLatencyMs: true,
+        failureCount: true,
+        successCount: true,
+        updatedAt: true,
+      },
+    });
+
+    const sourceHealth = summarizeSourceHealth(sourceHealthRows);
+    const enrichedCorrelations = correlations.map((correlation) => {
+      const intelligence = summarizeEventIntelligence({
+        title: correlation.event.title,
+        summary: correlation.event.summary,
+        region: correlation.event.region,
+        category: correlation.event.category,
+        severity: correlation.event.severity,
+        publishedAt: correlation.event.publishedAt,
+        supportingSourcesCount: correlation.event.supportingSourcesCount,
+        sourceReliability: correlation.event.sourceReliability ?? undefined,
+        symbols: [normalizedSymbol],
+      });
+
+      return {
+        ...correlation,
+        event: {
+          ...correlation.event,
+          category: intelligence.category,
+          whyThisMatters: intelligence.whyThisMatters,
+          reliability: buildEventReliability({
+            source: correlation.event.source,
+            supportingSourcesCount: correlation.event.supportingSourcesCount,
+            sourceReliability: correlation.event.sourceReliability,
+            intelligenceQuality: intelligence.intelligenceQuality,
+            publishedAt: correlation.event.publishedAt,
+            sourceHealth: matchSourceHealth(sourceHealth.sources, correlation.event.source),
+          }),
+        },
+      };
+    });
+
+    const totalEvents = enrichedCorrelations.length;
+    const upCount = enrichedCorrelations.filter((correlation) => correlation.impactDirection === "up").length;
+    const downCount = enrichedCorrelations.filter((correlation) => correlation.impactDirection === "down").length;
+    const dominantDirection = upCount === downCount ? "Mixed" : upCount > downCount ? "Bullish" : "Bearish";
+    const avgSeverity = totalEvents
+      ? enrichedCorrelations.reduce((sum, correlation) => sum + correlation.event.severity, 0) / totalEvents
+      : 0;
+
+    res.status(200).json({
+      symbol: normalizedSymbol,
+      summary: {
+        totalEvents,
+        avgSeverity,
+        upCount,
+        downCount,
+        dominantDirection,
+        patternConfidence: patterns[0] ? Math.round(patterns[0].confidence * 100) : 0,
+      },
+      correlations: enrichedCorrelations,
+      patterns,
+    });
   } catch {
     sendPublicApiError(res, "Unable to load this asset right now.");
   }

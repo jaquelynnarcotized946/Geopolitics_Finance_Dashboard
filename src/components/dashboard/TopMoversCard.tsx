@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Quote } from "../../lib/hooks/useQuotes";
 import { formatCurrency, formatPct } from "../../lib/format";
 import SymbolHoverCard from "../ui/SymbolHoverCard";
@@ -28,7 +29,9 @@ export default function TopMoversCard({ quotes }: { quotes: Quote[] }) {
             <div className="flex items-center gap-2">
               <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
               <SymbolHoverCard symbol={q.symbol}>
-                <span className="text-[12px] font-bold text-zinc-300">{q.symbol}</span>
+                <Link href={`/stock/${q.symbol}`} className="text-[12px] font-bold !text-zinc-300 hover:!text-cyan">
+                  {q.symbol}
+                </Link>
               </SymbolHoverCard>
             </div>
             <div className="flex items-center gap-3">

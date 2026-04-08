@@ -4,7 +4,7 @@ import type { Quote } from "../../lib/hooks/useQuotes";
 import SeverityBadge from "../ui/SeverityBadge";
 import SymbolHoverCard from "../ui/SymbolHoverCard";
 import TrustSummary from "../ui/TrustSummary";
-import { relativeTime, formatPct, formatCurrency } from "../../lib/format";
+import { formatCurrency, formatPct, relativeTime } from "../../lib/format";
 import { resolveCorrelationDisplay } from "../../lib/marketDisplay";
 import { getQuoteBadgeLabel } from "../../lib/marketPresentation";
 
@@ -15,13 +15,23 @@ type Props = {
     title: string;
     hint?: string;
   };
+  selectedEventId?: string | null;
+  activeSymbol?: string;
+  onSelectEvent?: (eventId: string) => void;
 };
 
-export default function EventMarketPanel({ events, quoteMap, emptyState }: Props) {
+export default function EventMarketPanel({
+  events,
+  quoteMap,
+  emptyState,
+  selectedEventId,
+  activeSymbol,
+  onSelectEvent,
+}: Props) {
   if (events.length === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.04] p-8 text-center">
-        <p className="text-sm text-zinc-500">
+      <div className="rounded-[24px] border border-white/[0.05] bg-black/35 p-8 text-center">
+        <p className="text-sm text-zinc-400">
           {emptyState?.title ?? "No events with market correlations yet."}
         </p>
         <p className="mt-1 text-[11px] text-zinc-600">
@@ -32,86 +42,81 @@ export default function EventMarketPanel({ events, quoteMap, emptyState }: Props
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {events.map((event) => {
         const correlations = event.correlations ?? [];
         const hasCorrelations = correlations.length > 0;
+        const selected = selectedEventId === event.id;
 
         return (
           <div
             key={event.id}
-            className="rounded-lg border border-white/[0.06] bg-white/[0.015] p-3.5 transition hover:bg-white/[0.03]"
+            className={`rounded-[24px] border p-4 transition ${
+              selected
+                ? "border-cyan/25 bg-cyan/[0.05] shadow-[0_0_0_1px_rgba(34,211,238,0.08)]"
+                : "border-white/[0.06] bg-black/50 hover:border-white/[0.1] hover:bg-white/[0.02]"
+            } ${onSelectEvent ? "cursor-pointer" : ""}`}
+            onClick={onSelectEvent ? () => onSelectEvent(event.id) : undefined}
+            role={onSelectEvent ? "button" : undefined}
+            tabIndex={onSelectEvent ? 0 : undefined}
+            onKeyDown={
+              onSelectEvent
+                ? (eventKey) => {
+                    if (eventKey.key === "Enter" || eventKey.key === " ") {
+                      eventKey.preventDefault();
+                      onSelectEvent(event.id);
+                    }
+                  }
+                : undefined
+            }
           >
-            {/* Header row */}
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 text-[10px] text-zinc-600">
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px] uppercase tracking-[0.12em] text-zinc-600">
                   <span>{event.source}</span>
                   <span>&#183;</span>
                   <span>{event.region}</span>
                   <span>&#183;</span>
                   <span>{relativeTime(event.publishedAt)}</span>
-                  {event.sentimentLabel && (
+                  {event.category ? (
                     <>
                       <span>&#183;</span>
-                      <span
-                        className={`font-semibold ${
-                          event.sentimentLabel === "positive"
-                            ? "text-emerald"
-                            : event.sentimentLabel === "negative"
-                            ? "text-red-400"
-                            : "text-zinc-500"
-                        }`}
-                      >
-                        {event.sentimentLabel === "positive"
-                          ? "↑ Positive"
-                          : event.sentimentLabel === "negative"
-                          ? "↓ Negative"
-                          : "— Neutral"}
-                      </span>
+                      <span>{event.category.replace(/-/g, " ")}</span>
                     </>
-                  )}
+                  ) : null}
                 </div>
-                <h3 className="mt-1 text-[13px] font-semibold text-white leading-snug">
-                  <Link href={`/event/${event.id}`} className="!text-white hover:!text-emerald transition-colors">
+                <h3 className="mt-2 text-[15px] font-semibold leading-snug text-white">
+                  <Link
+                    href={`/event/${event.id}`}
+                    onClick={(mouseEvent) => mouseEvent.stopPropagation()}
+                    className="!text-white transition-colors hover:!text-cyan"
+                  >
                     {event.title}
                   </Link>
                 </h3>
-                <p className="mt-0.5 text-[11px] text-zinc-500 line-clamp-1">{event.summary}</p>
-                {event.whyThisMatters && (
-                  <p className="mt-2 rounded-md border border-emerald/10 bg-emerald/5 px-2.5 py-2 text-[11px] text-zinc-300">
-                    <span className="mr-1 font-semibold text-emerald">Why it matters:</span>
+                <p className="mt-2 text-sm leading-6 text-zinc-400 line-clamp-2">{event.summary}</p>
+                {event.whyThisMatters ? (
+                  <p className="mt-3 rounded-xl border border-cyan/10 bg-cyan/[0.04] px-3 py-2 text-[12px] leading-5 text-zinc-300">
+                    <span className="mr-1 font-semibold text-cyan">Why it matters:</span>
                     {event.whyThisMatters}
                   </p>
-                )}
+                ) : null}
                 <TrustSummary
-                  className="mt-2"
+                  className="mt-3"
                   compact
                   supportingSourcesCount={event.supportingSourcesCount}
                   sourceReliability={event.sourceReliability}
                   intelligenceQuality={event.intelligenceQuality}
                   publishedAt={event.publishedAt}
+                  reliability={event.reliability}
                 />
-                <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
-                  {event.category && (
-                    <span className="rounded-full border border-white/[0.06] bg-white/[0.03] px-2 py-1 text-zinc-400">
-                      {event.category.replace(/-/g, " ")}
-                    </span>
-                  )}
-                  {event.isPremiumInsight && (
-                    <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2 py-1 text-amber-300">
-                      Premium-depth story
-                    </span>
-                  )}
-                </div>
               </div>
               <SeverityBadge severity={event.severity ?? 1} />
             </div>
 
-            {/* Market impact row */}
-            {hasCorrelations && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {correlations.slice(0, 5).map((corr) => {
+            <div className="mt-3 flex flex-wrap gap-2">
+              {hasCorrelations ? (
+                correlations.slice(0, 5).map((corr) => {
                   const quote = quoteMap.get(corr.symbol);
                   const display = resolveCorrelationDisplay({
                     liveChange: quote?.changePct,
@@ -120,21 +125,28 @@ export default function EventMarketPanel({ events, quoteMap, emptyState }: Props
                   });
                   const change = display.change;
                   const isUp = change >= 0;
-                  const badgeLabel = quote?.freshness ? getQuoteBadgeLabel(quote.freshness) : display.source;
+                  const badgeLabel = quote?.freshness
+                    ? getQuoteBadgeLabel(quote.freshness)
+                    : display.source;
 
                   return (
                     <SymbolHoverCard key={corr.id} symbol={corr.symbol}>
                       <Link
                         href={`/stock/${corr.symbol}`}
-                        className="flex items-center gap-2 rounded-md border border-white/[0.05] bg-white/[0.02] px-2.5 py-1.5 hover:bg-white/[0.05] hover:border-white/[0.1] transition"
+                        onClick={(mouseEvent) => mouseEvent.stopPropagation()}
+                        className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1.5 transition ${
+                          activeSymbol === corr.symbol
+                            ? "border-cyan/30 bg-cyan/10"
+                            : "border-white/[0.05] bg-white/[0.02] hover:border-white/[0.1] hover:bg-white/[0.05]"
+                        }`}
                       >
                         <span className={`h-1.5 w-1.5 rounded-full ${isUp ? "bg-emerald" : "bg-red-400"}`} />
                         <span className="text-[11px] font-bold text-zinc-300">{corr.symbol}</span>
-                        {quote && quote.price > 0 && (
-                          <span className="text-[10px] text-zinc-600">
+                        {quote && quote.price > 0 ? (
+                          <span className="text-[10px] text-zinc-500">
                             {formatCurrency(quote.price, quote.currency || "USD")}
                           </span>
-                        )}
+                        ) : null}
                         <span className={`text-[11px] font-bold ${isUp ? "text-emerald" : "text-red-400"}`}>
                           {formatPct(change)}
                         </span>
@@ -144,22 +156,33 @@ export default function EventMarketPanel({ events, quoteMap, emptyState }: Props
                       </Link>
                     </SymbolHoverCard>
                   );
-                })}
-              </div>
-            )}
+                })
+              ) : (
+                <span className="chip">No linked assets yet</span>
+              )}
+            </div>
 
-            {event.url && (
-              <div className="mt-2">
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link
+                href={`/event/${event.id}`}
+                onClick={(mouseEvent) => mouseEvent.stopPropagation()}
+                className="btn-secondary !px-3 !py-1.5 !text-xs"
+              >
+                Open event file
+              </Link>
+              {event.url ? (
                 <a
                   href={event.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[11px] font-medium text-emerald hover:text-emerald/80 transition"
+                  onClick={(mouseEvent) => mouseEvent.stopPropagation()}
+                  className="btn-secondary !px-3 !py-1.5 !text-xs"
                 >
                   Open source article
                 </a>
-              </div>
-            )}
+              ) : null}
+              <span className="chip">{hasCorrelations ? `${correlations.length} affected assets` : "Awaiting market link"}</span>
+            </div>
           </div>
         );
       })}

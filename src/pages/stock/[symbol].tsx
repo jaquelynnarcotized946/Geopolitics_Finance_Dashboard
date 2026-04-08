@@ -4,9 +4,11 @@ import dynamic from "next/dynamic";
 import useSWR from "swr";
 import Layout from "../../components/layout/Layout";
 import SeverityBadge from "../../components/ui/SeverityBadge";
+import TrustSummary from "../../components/ui/TrustSummary";
 import { getAssetMeta } from "../../lib/assets";
 import { relativeTime, formatPct, formatCurrency } from "../../lib/format";
 import { resolvePatternMove } from "../../lib/marketDisplay";
+import type { EventReliability } from "../../lib/reliability";
 import { requireAuth } from "../../lib/serverAuth";
 
 // Dynamic import to avoid SSR issues with TradingView
@@ -34,6 +36,9 @@ interface Correlation {
     publishedAt: string;
     severity: number;
     url: string | null;
+    category?: string;
+    whyThisMatters?: string | null;
+    reliability?: EventReliability;
   };
 }
 
@@ -52,6 +57,15 @@ interface QuoteData {
   price: number;
   changePct: number;
   currency?: string;
+}
+
+interface StockSummary {
+  totalEvents: number;
+  avgSeverity: number;
+  upCount: number;
+  downCount: number;
+  dominantDirection: string;
+  patternConfidence: number;
 }
 
 export default function StockDetail() {
@@ -73,17 +87,18 @@ export default function StockDetail() {
 
   const correlations: Correlation[] = data?.correlations ?? [];
   const patterns: Pattern[] = data?.patterns ?? [];
+  const summary: StockSummary | undefined = data?.summary;
   const quote: QuoteData | undefined = quoteData?.quotes?.[0];
 
   // Computed stats
-  const totalEvents = correlations.length;
-  const avgSeverity = totalEvents > 0
+  const totalEvents = summary?.totalEvents ?? correlations.length;
+  const avgSeverity = summary?.avgSeverity ?? (totalEvents > 0
     ? correlations.reduce((sum, c) => sum + c.event.severity, 0) / totalEvents
-    : 0;
-  const upCount = correlations.filter((c) => c.impactDirection === "up").length;
-  const downCount = correlations.filter((c) => c.impactDirection === "down").length;
-  const dominantDirection = upCount >= downCount ? "Bullish" : "Bearish";
-  const topConfidence = patterns.length > 0 ? Math.round(patterns[0].confidence * 100) : 0;
+    : 0);
+  const upCount = summary?.upCount ?? correlations.filter((c) => c.impactDirection === "up").length;
+  const downCount = summary?.downCount ?? correlations.filter((c) => c.impactDirection === "down").length;
+  const dominantDirection = summary?.dominantDirection ?? (upCount >= downCount ? "Bullish" : "Bearish");
+  const topConfidence = summary?.patternConfidence ?? (patterns.length > 0 ? Math.round(patterns[0].confidence * 100) : 0);
 
   // Loading state
   if (!symbol || isLoading) {
@@ -213,6 +228,13 @@ export default function StockDetail() {
                             <span>{relativeTime(corr.event.publishedAt)}</span>
                           </div>
                           <p className="mt-1 text-[11px] text-zinc-500 line-clamp-2">{corr.event.summary}</p>
+                          {corr.event.whyThisMatters ? (
+                            <p className="mt-2 rounded-xl border border-cyan/10 bg-cyan/[0.04] px-3 py-2 text-[11px] leading-5 text-zinc-300">
+                              <span className="mr-1 font-semibold text-cyan-400">Why it matters:</span>
+                              {corr.event.whyThisMatters}
+                            </p>
+                          ) : null}
+                          <TrustSummary className="mt-2" compact reliability={corr.event.reliability} />
 
                           {/* Impact bar */}
                           <div className="mt-2 flex items-center gap-2">
@@ -223,6 +245,22 @@ export default function StockDetail() {
                               />
                             </div>
                             <span className="text-[9px] text-zinc-600">{scoreWidth}% impact</span>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Link href={`/event/${corr.event.id}`} className="btn-secondary !px-3 !py-1.5 !text-xs">
+                              Open event file
+                            </Link>
+                            {corr.event.url ? (
+                              <a
+                                href={corr.event.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn-secondary !px-3 !py-1.5 !text-xs"
+                              >
+                                Open source article
+                              </a>
+                            ) : null}
                           </div>
                         </div>
 

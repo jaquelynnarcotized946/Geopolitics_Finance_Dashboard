@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formatCurrency, formatPct } from "../../lib/format";
 import SymbolHoverCard from "./SymbolHoverCard";
 
@@ -22,7 +23,9 @@ export default function StockTicker({ items }: { items: TickerItem[] }) {
             className="inline-flex items-center gap-2 px-4 border-r border-white/[0.04] last:border-0"
           >
             <SymbolHoverCard symbol={item.symbol}>
-              <span className="text-[11px] font-bold text-zinc-300">{item.symbol}</span>
+              <Link href={`/stock/${item.symbol}`} className="text-[11px] font-bold !text-zinc-300 hover:!text-cyan">
+                {item.symbol}
+              </Link>
             </SymbolHoverCard>
             <span className="text-[11px] text-zinc-600">
               {formatCurrency(item.price, item.currency || "USD")}

@@ -183,7 +183,7 @@ export default function EventDetail() {
             </div>
           </SectionCard>
 
-          <SectionCard title="Market Reaction" subtitle="Asset-level context tied directly to this event and its predicted pattern history.">
+          <SectionCard title="Affected Assets" subtitle="These are the symbols linked to this event, with direct jumps into the asset research view.">
             <div className="grid gap-3 lg:grid-cols-2">
               {event.correlations.map((correlation) => {
                 const quote = quoteMap.get(correlation.symbol);
@@ -217,6 +217,11 @@ export default function EventDetail() {
                         </p>
                       </div>
                     ) : null}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link href={`/stock/${correlation.symbol}`} className="btn-secondary">
+                        Open asset file
+                      </Link>
+                    </div>
                   </div>
                 );
               })}
